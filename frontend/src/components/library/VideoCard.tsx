@@ -8,7 +8,7 @@ import FrameThumb from "@/components/data/FrameThumb";
 import StatusIndicator from "@/components/ui/StatusIndicator";
 import Button from "@/components/ui/Button";
 import { formatTimestamp, formatDate } from "@/lib/format";
-import { updateVideoName } from "@/lib/api";
+import { updateVideoName, getVideoDownloadUrl } from "@/lib/api";
 
 interface VideoCardProps {
   video: VideoItem;
@@ -102,7 +102,7 @@ export const VideoCard: React.FC<VideoCardProps> = ({ video, onDelete, onRetry, 
   const isSearchable = video.status === "completed" || video.status === "processing";
   const isFailed = video.status === "failed";
   const isIndexing = video.status === "processing" || video.status === "queued";
-  const downloadUrl = video.download_url || `http://127.0.0.1:8000/api/v1/videos/${video.id}/download`;
+  const downloadUrl = video.download_url || getVideoDownloadUrl(video.id);
 
   return (
     <div

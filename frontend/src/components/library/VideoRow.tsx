@@ -8,7 +8,7 @@ import FrameThumb from "@/components/data/FrameThumb";
 import StatusIndicator from "@/components/ui/StatusIndicator";
 import Button from "@/components/ui/Button";
 import { formatTimestamp, formatFileSize, formatDate } from "@/lib/format";
-import { updateVideoName } from "@/lib/api";
+import { updateVideoName, getVideoDownloadUrl } from "@/lib/api";
 
 interface VideoRowProps {
   video: VideoItem;
@@ -103,7 +103,7 @@ export const VideoRow: React.FC<VideoRowProps> = ({ video, onDelete, onRetry, on
   }
 
   const isPlayable = video.status === "completed" || video.status === "processing" || video.status === "failed";
-  const downloadUrl = video.download_url || `http://127.0.0.1:8000/api/v1/videos/${video.id}/download`;
+  const downloadUrl = video.download_url || getVideoDownloadUrl(video.id);
 
   return (
     <tr
