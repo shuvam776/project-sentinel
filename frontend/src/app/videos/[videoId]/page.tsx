@@ -2,13 +2,14 @@
 
 import React, { useEffect, useState, useCallback, Suspense, useRef } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
-import { Search, MoreVertical, Download, Square, Trash2, Keyboard, Pencil, Check, X, Loader2 } from "lucide-react";
+import { Search, MoreVertical, Download, Square, Trash2, Keyboard, Pencil, Check, X, Loader2, SlidersHorizontal } from "lucide-react";
 import AppShell from "@/components/shell/AppShell";
 import Header from "@/components/shell/Header";
 import VideoPlayer from "@/components/player/VideoPlayer";
 import SidePanel from "@/components/player/SidePanel";
 import InlineAlert from "@/components/ui/InlineAlert";
 import KeyboardShortcutsModal from "@/components/player/KeyboardShortcutsModal";
+import VideoSizeComparisonModal from "@/components/player/VideoSizeComparisonModal";
 import { fetchVideo, fetchDetections, searchVideo, deleteVideo, getVideoDownloadUrl, getClipDownloadUrl, updateVideoName } from "@/lib/api";
 import { VideoItem, SearchResultSegment, Detection } from "@/types";
 
@@ -34,6 +35,7 @@ function VideoDetailContent() {
   const [error, setError] = useState<string | null>(null);
   const [headerMenuOpen, setHeaderMenuOpen] = useState(false);
   const [shortcutsModalOpen, setShortcutsModalOpen] = useState(false);
+  const [sizeComparisonModalOpen, setSizeComparisonModalOpen] = useState(false);
   const [renameModalOpen, setRenameModalOpen] = useState(false);
   const [renameInput, setRenameInput] = useState("");
   const [isSavingRename, setIsSavingRename] = useState(false);
@@ -182,6 +184,15 @@ function VideoDetailContent() {
   const headerActions = video ? (
     <div className="flex items-center gap-2">
       <button
+        onClick={() => setSizeComparisonModalOpen(true)}
+        className="h-8 px-2.5 rounded-sm bg-surface border border-border-default hover:border-amber-400 hover:bg-amber-50/50 text-txt-primary flex items-center gap-1.5 text-xs font-medium transition-colors shadow-xs"
+        title="Compare annotated video sizes, bounding box delta shifts, and storage savings per class"
+      >
+        <SlidersHorizontal className="w-3.5 h-3.5 text-amber-600" />
+        <span className="hidden sm:inline">Size & Storage Analyzer</span>
+      </button>
+
+      <button
         onClick={() => router.push(`/search?video=${video.id}`)}
         className="h-8 px-2.5 rounded-sm bg-surface border border-border-default hover:border-border-strong text-txt-primary flex items-center gap-1.5 text-xs font-medium transition-colors shadow-xs"
         title="Search within this video"
@@ -201,7 +212,18 @@ function VideoDetailContent() {
         </button>
 
         {headerMenuOpen && (
-          <div className="absolute right-0 top-full mt-1 w-52 bg-surface border border-border-default rounded-md shadow-float p-1 text-xs space-y-0.5 z-40">
+          <div className="absolute right-0 top-full mt-1 w-56 bg-surface border border-border-default rounded-md shadow-float p-1 text-xs space-y-0.5 z-40">
+            <button
+              onClick={() => {
+                setHeaderMenuOpen(false);
+                setSizeComparisonModalOpen(true);
+              }}
+              className="w-full text-left px-2.5 py-1.5 rounded-sm text-txt-primary hover:bg-surface-raised flex items-center gap-2"
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5 text-amber-600" />
+              <span>Size & Storage Analyzer</span>
+            </button>
+
             <button
               onClick={() => {
                 setHeaderMenuOpen(false);
@@ -327,6 +349,7 @@ function VideoDetailContent() {
               }}
               onRenameVideo={handleRenameVideo}
               onDeleteVideo={handleDeleteVideo}
+              onOpenSizeComparison={() => setSizeComparisonModalOpen(true)}
             />
           </>
         )}
@@ -402,6 +425,17 @@ function VideoDetailContent() {
             </div>
           </div>
         </div>
+      )}
+
+      {video && (
+        <VideoSizeComparisonModal
+          isOpen={sizeComparisonModalOpen}
+          onClose={() => setSizeComparisonModalOpen(false)}
+          video={video}
+          detections={detections}
+          selectedClasses={selectedClasses}
+          onSelectClasses={handleUpdateSelectedClasses}
+        />
       )}
 
       <KeyboardShortcutsModal

@@ -43,6 +43,7 @@ interface SidePanelProps {
   onSelectDetection?: (det: Detection) => void;
   onRenameVideo?: (newName: string) => Promise<void>;
   onDeleteVideo?: () => void;
+  onOpenSizeComparison?: () => void;
   className?: string;
 }
 
@@ -63,6 +64,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({
   onSelectDetection,
   onRenameVideo,
   onDeleteVideo,
+  onOpenSizeComparison,
   className = "",
 }) => {
   const router = useRouter();
@@ -837,6 +839,18 @@ export const SidePanel: React.FC<SidePanelProps> = ({
                   Renders bounding boxes and detection confidence tags directly into the video frames at native video FPS.
                 </p>
               </div>
+
+              {onOpenSizeComparison && (
+                <button
+                  type="button"
+                  onClick={onOpenSizeComparison}
+                  className="w-full h-8 px-2.5 rounded bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 flex items-center justify-center gap-1.5 font-medium text-xs transition-colors shadow-2xs"
+                  title="Analyze bounding box delta motion and simulate storage size savings per class"
+                >
+                  <SlidersHorizontal className="w-3.5 h-3.5 text-amber-700" />
+                  <span>Size & Bounding Box Delta Analyzer…</span>
+                </button>
+              )}
 
               {/* Individual Class 1-Click Downloads */}
               {supportedClasses.length > 0 && (
