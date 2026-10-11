@@ -422,14 +422,40 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       {/* Video Stage Arena */}
       <div
         className={clsx(
-          "relative flex-1 p-2 sm:p-4 flex items-center justify-center overflow-hidden min-h-[300px] transition-colors",
-          playerTheme === "dark" ? "bg-black" : "bg-stone-100/90"
+          "relative flex-1 flex items-center justify-center overflow-hidden min-h-[300px] transition-colors",
+          playerTheme === "dark" ? "bg-black" : "bg-stone-100/90 p-2 sm:p-4"
         )}
       >
+        {/* Arena Theme Toggle Button (Light / Black) - Top Left inside Player Arena */}
+        <button
+          type="button"
+          onClick={handleToggleTheme}
+          className={clsx(
+            "absolute top-3 left-3 z-30 px-2.5 py-1.5 rounded-sm text-xs font-medium flex items-center gap-1.5 transition-all shadow-sm border backdrop-blur-xs select-none cursor-pointer",
+            playerTheme === "dark"
+              ? "bg-stone-900/90 text-stone-200 border-stone-700/80 hover:bg-stone-800 hover:text-white hover:border-stone-600"
+              : "bg-white/95 text-stone-800 border-stone-300 hover:bg-stone-50 hover:text-stone-900 hover:border-stone-400"
+          )}
+          title={playerTheme === "light" ? "Switch arena to Dark (Black) theme" : "Switch arena to Light (White) theme"}
+          aria-label="Toggle player arena theme"
+        >
+          {playerTheme === "dark" ? (
+            <>
+              <Sun className="w-3.5 h-3.5 text-amber-400" />
+              <span className="font-mono text-[11px] font-medium tracking-tight">Light Arena</span>
+            </>
+          ) : (
+            <>
+              <Moon className="w-3.5 h-3.5 text-stone-600" />
+              <span className="font-mono text-[11px] font-medium tracking-tight">Dark Arena</span>
+            </>
+          )}
+        </button>
+
         <div
           className={clsx(
-            "relative max-w-full max-h-full flex items-center justify-center rounded-md overflow-hidden bg-stone-950 shadow-sm border transition-colors",
-            playerTheme === "dark" ? "border-stone-800" : "border-stone-200"
+            "relative max-w-full max-h-full flex items-center justify-center transition-colors",
+            playerTheme === "dark" ? "bg-black" : "rounded-md overflow-hidden bg-stone-950 shadow-sm border border-stone-200"
           )}
           style={{ aspectRatio }}
         >
@@ -479,32 +505,6 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
             showBoxes={showBoxes}
             showLabels={showBoxes && showLabels}
           />
-
-          {/* Arena Theme Toggle Button (Light / Black) - Top Left inside Player Arena */}
-          <button
-            type="button"
-            onClick={handleToggleTheme}
-            className={clsx(
-              "absolute top-3 left-3 z-30 px-2.5 py-1 rounded-sm text-xs font-medium flex items-center gap-1.5 transition-all shadow-sm border backdrop-blur-xs select-none cursor-pointer",
-              playerTheme === "dark"
-                ? "bg-stone-900/90 text-stone-200 border-stone-700/80 hover:bg-stone-800 hover:text-white hover:border-stone-600"
-                : "bg-white/95 text-stone-800 border-stone-300 hover:bg-stone-50 hover:text-stone-900 hover:border-stone-400"
-            )}
-            title={playerTheme === "light" ? "Switch arena to Dark (Black) theme" : "Switch arena to Light (White) theme"}
-            aria-label="Toggle player arena theme"
-          >
-            {playerTheme === "dark" ? (
-              <>
-                <Sun className="w-3.5 h-3.5 text-amber-400" />
-                <span className="font-mono text-[11px] font-medium">Light</span>
-              </>
-            ) : (
-              <>
-                <Moon className="w-3.5 h-3.5 text-stone-600" />
-                <span className="font-mono text-[11px] font-medium">Dark</span>
-              </>
-            )}
-          </button>
 
           {/* Stage Semantic Match Chip (§8C top-right of stage) */}
           {activeMatch && (

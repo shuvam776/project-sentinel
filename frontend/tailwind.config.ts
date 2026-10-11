@@ -1,6 +1,7 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
+  darkMode: ["selector", '[data-zone="dark"]'],
   content: [
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
@@ -76,7 +77,12 @@ const config: Config = {
         full: "9999px",
       },
       boxShadow: {
+        "2xs": "0 1px 2px 0 rgba(0, 0, 0, 0.04)",
+        xs: "0 1px 2px 0 rgba(0, 0, 0, 0.06)",
         float: "var(--shadow-float)",
+      },
+      backdropBlur: {
+        xs: "2px",
       },
       fontFamily: {
         sans: ["var(--font-geist-sans)", "Geist", "ui-sans-serif", "system-ui", "sans-serif"],
