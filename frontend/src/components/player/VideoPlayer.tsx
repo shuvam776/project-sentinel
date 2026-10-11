@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useRef, useState, useEffect, useCallback } from "react";
-import { Diamond, Loader2 } from "lucide-react";
+import { Diamond, Loader2, Sun, Moon } from "lucide-react";
+import { clsx } from "clsx";
 import DetectionOverlay from "./DetectionOverlay";
 import PlayerControls from "./PlayerControls";
 import Timeline from "./Timeline";
@@ -58,6 +59,31 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [volume, setVolume] = useState(1.0);
   const [isLooping, setIsLooping] = useState(false);
   const [isBuffering, setIsBuffering] = useState(false);
+  const [playerTheme, setPlayerTheme] = useState<"light" | "dark">("light");
+
+  // Load persisted theme preference on mount
+  useEffect(() => {
+    try {
+      const savedTheme = localStorage.getItem("sentinel.player_theme");
+      if (savedTheme === "dark" || savedTheme === "light") {
+        setPlayerTheme(savedTheme);
+      }
+    } catch {
+      // LocalStorage access fallback
+    }
+  }, []);
+
+  const handleToggleTheme = useCallback(() => {
+    setPlayerTheme((prev) => {
+      const next = prev === "light" ? "dark" : "light";
+      try {
+        localStorage.setItem("sentinel.player_theme", next);
+      } catch {
+        // LocalStorage access fallback
+      }
+      return next;
+    });
+  }, []);
 
   // Seek initial time on metadata load
   useEffect(() => {
@@ -386,12 +412,25 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   return (
     <div
       ref={containerRef}
-      className={`flex flex-col flex-1 bg-white overflow-hidden ${className}`}
+      data-zone={playerTheme === "dark" ? "dark" : undefined}
+      className={clsx(
+        "flex flex-col flex-1 overflow-hidden transition-colors",
+        playerTheme === "dark" ? "bg-black" : "bg-white",
+        className
+      )}
     >
-      {/* Light Clean Video Stage */}
-      <div className="relative flex-1 bg-stone-100/90 p-2 sm:p-4 flex items-center justify-center overflow-hidden min-h-[300px]">
+      {/* Video Stage Arena */}
+      <div
+        className={clsx(
+          "relative flex-1 p-2 sm:p-4 flex items-center justify-center overflow-hidden min-h-[300px] transition-colors",
+          playerTheme === "dark" ? "bg-black" : "bg-stone-100/90"
+        )}
+      >
         <div
-          className="relative max-w-full max-h-full flex items-center justify-center rounded-md overflow-hidden bg-stone-950 shadow-sm border border-stone-200"
+          className={clsx(
+            "relative max-w-full max-h-full flex items-center justify-center rounded-md overflow-hidden bg-stone-950 shadow-sm border transition-colors",
+            playerTheme === "dark" ? "border-stone-800" : "border-stone-200"
+          )}
           style={{ aspectRatio }}
         >
           <video
@@ -441,10 +480,48 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
             showLabels={showBoxes && showLabels}
           />
 
+          {/* Arena Theme Toggle Button (Light / Black) - Top Left inside Player Arena */}
+          <button
+            type="button"
+            onClick={handleToggleTheme}
+            className={clsx(
+              "absolute top-3 left-3 z-30 px-2.5 py-1 rounded-sm text-xs font-medium flex items-center gap-1.5 transition-all shadow-sm border backdrop-blur-xs select-none cursor-pointer",
+              playerTheme === "dark"
+                ? "bg-stone-900/90 text-stone-200 border-stone-700/80 hover:bg-stone-800 hover:text-white hover:border-stone-600"
+                : "bg-white/95 text-stone-800 border-stone-300 hover:bg-stone-50 hover:text-stone-900 hover:border-stone-400"
+            )}
+            title={playerTheme === "light" ? "Switch arena to Dark (Black) theme" : "Switch arena to Light (White) theme"}
+            aria-label="Toggle player arena theme"
+          >
+            {playerTheme === "dark" ? (
+              <>
+                <Sun className="w-3.5 h-3.5 text-amber-400" />
+                <span className="font-mono text-[11px] font-medium">Light</span>
+              </>
+            ) : (
+              <>
+                <Moon className="w-3.5 h-3.5 text-stone-600" />
+                <span className="font-mono text-[11px] font-medium">Dark</span>
+              </>
+            )}
+          </button>
+
           {/* Stage Semantic Match Chip (§8C top-right of stage) */}
           {activeMatch && (
-            <div className="absolute top-3 right-3 px-2 py-1 rounded-sm bg-white/95 border border-stone-300 text-stone-900 font-mono text-xs flex items-center gap-1.5 shadow-md z-20 backdrop-blur-xs">
-              <Diamond className="w-3.5 h-3.5 text-stone-900 fill-current" />
+            <div
+              className={clsx(
+                "absolute top-3 right-3 px-2 py-1 rounded-sm font-mono text-xs flex items-center gap-1.5 shadow-md z-20 backdrop-blur-xs border transition-colors",
+                playerTheme === "dark"
+                  ? "bg-stone-900/90 border-stone-700 text-stone-100"
+                  : "bg-white/95 border-stone-300 text-stone-900"
+              )}
+            >
+              <Diamond
+                className={clsx(
+                  "w-3.5 h-3.5",
+                  playerTheme === "dark" ? "text-amber-400 fill-amber-400" : "text-stone-900 fill-current"
+                )}
+              />
               <span>Frame match · similarity {formatScore(activeMatch.best_score)}</span>
             </div>
           )}

@@ -92,7 +92,7 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
   return (
     <div
       className={clsx(
-        "h-[40px] bg-surface border-t border-border-subtle px-3 flex items-center justify-between text-xs select-none",
+        "h-[40px] bg-surface border-t border-border-subtle px-3 flex items-center justify-between text-xs select-none transition-colors",
         className
       )}
     >
@@ -100,7 +100,7 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
       <div className="flex items-center gap-2 sm:gap-2.5">
         <button
           onClick={onTogglePlay}
-          className="p-1 rounded-sm text-stone-900 hover:bg-stone-100 transition-colors"
+          className="p-1 rounded-sm text-txt-primary hover:bg-surface-raised transition-colors cursor-pointer"
           title={isPlaying ? "Pause (K / Space)" : "Play (K / Space)"}
         >
           {isPlaying ? (
@@ -111,17 +111,17 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
         </button>
 
         {onSeekRelative && (
-          <div className="flex items-center gap-0.5 text-stone-600">
+          <div className="flex items-center gap-0.5 text-txt-secondary">
             <button
               onClick={() => onSeekRelative(-5)}
-              className="p-1 rounded-sm hover:text-stone-900 hover:bg-stone-100 transition-colors"
+              className="p-1 rounded-sm hover:text-txt-primary hover:bg-surface-raised transition-colors cursor-pointer"
               title="Jump back 5s (← / J)"
             >
               <RotateCcw className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={() => onSeekRelative(5)}
-              className="p-1 rounded-sm hover:text-stone-900 hover:bg-stone-100 transition-colors"
+              className="p-1 rounded-sm hover:text-txt-primary hover:bg-surface-raised transition-colors cursor-pointer"
               title="Jump forward 5s (→ / L)"
             >
               <RotateCw className="w-3.5 h-3.5" />
@@ -130,9 +130,9 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
         )}
 
         {/* Player Time Readout */}
-        <div className="font-mono text-xs text-stone-900 tabular-nums">
+        <div className="font-mono text-xs text-txt-primary tabular-nums">
           {formatTimestamp(currentTime, true)}{" "}
-          <span className="text-stone-400">/</span> {formatTimestamp(duration)}
+          <span className="text-txt-tertiary">/</span> {formatTimestamp(duration)}
         </div>
       </div>
 
@@ -143,7 +143,7 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
           <button
             onClick={onPrevMatch}
             disabled={!onPrevMatch}
-            className="p-1 rounded-sm text-stone-600 hover:text-stone-900 hover:bg-stone-100 disabled:text-stone-300 disabled:hover:bg-transparent"
+            className="p-1 rounded-sm text-txt-secondary hover:text-txt-primary hover:bg-surface-raised disabled:text-txt-disabled disabled:hover:bg-transparent transition-colors cursor-pointer"
             title="Previous match / detection ([)"
           >
             <ChevronLeft className="w-4 h-4" />
@@ -151,7 +151,7 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
           <button
             onClick={onNextMatch}
             disabled={!onNextMatch}
-            className="p-1 rounded-sm text-stone-600 hover:text-stone-900 hover:bg-stone-100 disabled:text-stone-300 disabled:hover:bg-transparent"
+            className="p-1 rounded-sm text-txt-secondary hover:text-txt-primary hover:bg-surface-raised disabled:text-txt-disabled disabled:hover:bg-transparent transition-colors cursor-pointer"
             title="Next match / detection (])"
           >
             <ChevronRight className="w-4 h-4" />
@@ -166,12 +166,12 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
             className={clsx(
               "h-7 px-2 rounded-sm flex items-center gap-1 transition-all text-xs font-medium cursor-pointer",
               showBoxes
-                ? "bg-amber-100 text-amber-900 border border-amber-300 font-semibold shadow-2xs"
-                : "text-stone-600 hover:text-stone-900 hover:bg-stone-100 border border-transparent"
+                ? "bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/40 font-semibold shadow-2xs"
+                : "text-txt-secondary hover:text-txt-primary hover:bg-surface-raised border border-transparent"
             )}
             title="Toggle detection boxes (B)"
           >
-            <Square className={clsx("w-3.5 h-3.5", showBoxes ? "text-amber-700 stroke-[2.2]" : "text-stone-400")} />
+            <Square className={clsx("w-3.5 h-3.5", showBoxes ? "text-amber-600 dark:text-amber-400 stroke-[2.2]" : "text-txt-tertiary")} />
             <span className="hidden sm:inline">Boxes</span>
           </button>
 
@@ -181,12 +181,12 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
             className={clsx(
               "h-7 px-2 rounded-sm flex items-center gap-1 transition-all text-xs font-medium cursor-pointer",
               showLabels
-                ? "bg-amber-100 text-amber-900 border border-amber-300 font-semibold shadow-2xs"
-                : "text-stone-600 hover:text-stone-900 hover:bg-stone-100 border border-transparent"
+                ? "bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/40 font-semibold shadow-2xs"
+                : "text-txt-secondary hover:text-txt-primary hover:bg-surface-raised border border-transparent"
             )}
             title="Toggle box labels (L)"
           >
-            <Tag className={clsx("w-3.5 h-3.5", showLabels ? "text-amber-700 stroke-[2.2]" : "text-stone-400")} />
+            <Tag className={clsx("w-3.5 h-3.5", showLabels ? "text-amber-600 dark:text-amber-400 stroke-[2.2]" : "text-txt-tertiary")} />
             <span className="hidden sm:inline">Labels</span>
           </button>
         </div>
@@ -195,7 +195,7 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
         <div className="relative">
           <button
             onClick={() => setSpeedMenuOpen(!speedMenuOpen)}
-            className="h-7 px-1.5 rounded-sm text-stone-600 hover:text-stone-900 hover:bg-stone-100 font-mono text-[11px]"
+            className="h-7 px-1.5 rounded-sm text-txt-secondary hover:text-txt-primary hover:bg-surface-raised font-mono text-[11px] cursor-pointer"
             title="Playback speed"
           >
             {playbackSpeed}×
@@ -203,7 +203,7 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
 
           {speedMenuOpen && (
             <div
-              className="absolute bottom-full mb-1 right-0 bg-white border border-stone-200 rounded-md shadow-float p-1 text-xs space-y-0.5 z-30"
+              className="absolute bottom-full mb-1 right-0 bg-surface border border-border-default rounded-md shadow-float p-1 text-xs space-y-0.5 z-30 min-w-[70px]"
               onMouseLeave={() => setSpeedMenuOpen(false)}
             >
               {speeds.map((s) => (
@@ -214,8 +214,8 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
                     setSpeedMenuOpen(false);
                   }}
                   className={clsx(
-                    "w-full text-left px-2 py-1 rounded-sm font-mono",
-                    playbackSpeed === s ? "bg-amber-100 text-amber-900 font-semibold" : "text-stone-800 hover:bg-stone-100"
+                    "w-full text-left px-2 py-1 rounded-sm font-mono cursor-pointer transition-colors",
+                    playbackSpeed === s ? "bg-amber-500/15 text-amber-700 dark:text-amber-400 font-semibold" : "text-txt-primary hover:bg-surface-raised"
                   )}
                 >
                   {s}×
@@ -230,13 +230,13 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
           <button
             onClick={onToggleMute}
             className={clsx(
-              "p-1 rounded-sm transition-colors",
-              isMuted ? "text-amber-700 bg-amber-50" : "text-stone-600 hover:text-stone-900 hover:bg-stone-100"
+              "p-1 rounded-sm transition-colors cursor-pointer",
+              isMuted ? "text-amber-600 bg-amber-500/10" : "text-txt-secondary hover:text-txt-primary hover:bg-surface-raised"
             )}
             title={isMuted ? "Unmute (M)" : "Mute (M)"}
           >
             {isMuted || volume === 0 ? (
-              <VolumeX className="w-4 h-4 text-amber-700" />
+              <VolumeX className="w-4 h-4 text-amber-600" />
             ) : volume < 0.5 ? (
               <Volume1 className="w-4 h-4" />
             ) : (
@@ -250,7 +250,7 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
             step="0.05"
             value={isMuted ? 0 : volume}
             onChange={(e) => onChangeVolume(parseFloat(e.target.value))}
-            className="w-12 sm:w-16 h-1 bg-stone-200 rounded-full accent-amber-600 cursor-pointer"
+            className="w-12 sm:w-16 h-1 bg-border-default rounded-full accent-amber-600 cursor-pointer"
             title={`Volume: ${Math.round((isMuted ? 0 : volume) * 100)}%`}
           />
         </div>
@@ -261,8 +261,8 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
             <button
               onClick={onToggleLoop}
               className={clsx(
-                "p-1 rounded-sm transition-colors",
-                isLooping ? "text-amber-700 bg-amber-100/70" : "text-stone-600 hover:text-stone-900 hover:bg-stone-100"
+                "p-1 rounded-sm transition-colors cursor-pointer",
+                isLooping ? "text-amber-600 bg-amber-500/10" : "text-txt-secondary hover:text-txt-primary hover:bg-surface-raised"
               )}
               title={isLooping ? "Loop playback is ON" : "Turn on loop playback"}
             >
@@ -273,7 +273,7 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
           {onCaptureSnapshot && (
             <button
               onClick={onCaptureSnapshot}
-              className="p-1 rounded-sm text-stone-600 hover:text-stone-900 hover:bg-stone-100 transition-colors"
+              className="p-1 rounded-sm text-txt-secondary hover:text-txt-primary hover:bg-surface-raised transition-colors cursor-pointer"
               title="Capture Frame Snapshot (Download instant JPEG)"
             >
               <Camera className="w-3.5 h-3.5" />
@@ -283,7 +283,7 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
           {onTogglePiP && (
             <button
               onClick={onTogglePiP}
-              className="p-1 rounded-sm text-stone-600 hover:text-stone-900 hover:bg-stone-100 transition-colors"
+              className="p-1 rounded-sm text-txt-secondary hover:text-txt-primary hover:bg-surface-raised transition-colors cursor-pointer"
               title="Picture in Picture (PiP)"
             >
               <PictureInPicture2 className="w-3.5 h-3.5" />
@@ -293,7 +293,7 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
           {onOpenShortcuts && (
             <button
               onClick={onOpenShortcuts}
-              className="p-1 rounded-sm text-stone-600 hover:text-stone-900 hover:bg-stone-100"
+              className="p-1 rounded-sm text-txt-secondary hover:text-txt-primary hover:bg-surface-raised transition-colors cursor-pointer"
               title="Keyboard shortcuts (?)"
             >
               <Keyboard className="w-3.5 h-3.5" />
@@ -302,7 +302,7 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
 
           <button
             onClick={onToggleFullscreen}
-            className="p-1 rounded-sm text-stone-600 hover:text-stone-900 hover:bg-stone-100 ml-0.5"
+            className="p-1 rounded-sm text-txt-secondary hover:text-txt-primary hover:bg-surface-raised ml-0.5 transition-colors cursor-pointer"
             title="Fullscreen (F)"
           >
             <Maximize className="w-3.5 h-3.5" />
