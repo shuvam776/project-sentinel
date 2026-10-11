@@ -27,6 +27,7 @@ const nextConfig = {
   },
   async rewrites() {
     const rawApi =
+      process.env.SENTINEL_BACKEND_URL ||
       process.env.BACKEND_URL ||
       process.env.API_URL ||
       process.env.SERVER_URL ||

@@ -42,7 +42,7 @@ If deploying as a standard Web Service:
 3. Under **Environment Variables**, add:
    | Key | Value | Notes |
    | :--- | :--- | :--- |
-   | `BACKEND_URL` | `https://your-render-app.onrender.com` | Live Render backend URL (no public prefix needed) |
+   | `SENTINEL_BACKEND_URL` *(or `BACKEND_URL`)* | `https://your-render-app.onrender.com` | Live Render backend URL (no public prefix needed) |
 4. Click **Deploy**.
 5. Vercel will build and launch your application at `https://your-project.vercel.app`.
 
