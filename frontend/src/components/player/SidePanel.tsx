@@ -7,8 +7,7 @@ import {
   Trash2,
   Search,
   SlidersHorizontal,
-  ArrowUpDown,
-  Sparkles,
+  Video,
   Layers,
   Loader2,
   CheckCircle2,
@@ -513,7 +512,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({
                 <div className="flex items-start justify-between">
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-1.5 text-xs font-semibold text-stone-900">
-                      <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                      <Layers className="w-3.5 h-3.5 text-amber-600" />
                       <span>Export Annotated Video</span>
                     </div>
                     <p className="text-[11px] text-stone-600 leading-tight">
@@ -618,7 +617,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({
             <div className="p-3.5 bg-white rounded-md border border-amber-300 shadow-sm space-y-3">
               <div className="space-y-1">
                 <div className="flex items-center gap-1.5 font-semibold text-stone-900 text-xs">
-                  <Sparkles className="w-4 h-4 text-amber-600" />
+                  <Film className="w-4 h-4 text-amber-600" />
                   <span>Burned-in Annotated Video Export</span>
                 </div>
                 <p className="text-[11px] text-stone-600 leading-normal">

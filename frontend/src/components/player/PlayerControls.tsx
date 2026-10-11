@@ -125,63 +125,43 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
         </div>
 
         {/* Overlay Toggles Group */}
-        <div className="flex items-center gap-1 border-r border-border-subtle pr-2 mr-1">
+        <div className="flex items-center gap-1 border-r border-border-default pr-2 mr-1">
           <button
             onClick={onToggleBoxes}
             aria-pressed={showBoxes}
             className={clsx(
-              "h-7 px-2 rounded-sm flex items-center gap-1 transition-colors text-xs font-medium",
+              "h-7 px-2.5 rounded-sm flex items-center gap-1.5 transition-all text-xs font-medium cursor-pointer",
               showBoxes
-                ? "bg-accent-subtle text-accent-text"
-                : "text-txt-secondary hover:text-txt-primary hover:bg-surface-raised"
+                ? "bg-amber-100 text-amber-900 border border-amber-300 font-semibold shadow-2xs"
+                : "text-stone-600 hover:text-stone-900 hover:bg-stone-100 border border-transparent"
             )}
-            title="Detection boxes (B)"
+            title="Toggle detection boxes (B)"
           >
-            <Square className={clsx("w-3.5 h-3.5", showBoxes ? "text-accent" : "text-txt-tertiary")} />
+            <Square className={clsx("w-3.5 h-3.5", showBoxes ? "text-amber-700 stroke-[2.2]" : "text-stone-400")} />
             <span>Boxes</span>
           </button>
 
           <button
             onClick={onToggleLabels}
-            disabled={!showBoxes}
-            aria-pressed={showBoxes && showLabels}
+            aria-pressed={showLabels}
             className={clsx(
-              "h-7 px-2 rounded-sm flex items-center gap-1 transition-colors text-xs font-medium",
-              !showBoxes
-                ? "text-txt-disabled opacity-40 cursor-not-allowed select-none"
-                : showLabels
-                ? "bg-accent-subtle text-accent-text"
-                : "text-txt-secondary hover:text-txt-primary hover:bg-surface-raised"
+              "h-7 px-2.5 rounded-sm flex items-center gap-1.5 transition-all text-xs font-medium cursor-pointer",
+              showLabels
+                ? "bg-amber-100 text-amber-900 border border-amber-300 font-semibold shadow-2xs"
+                : "text-stone-600 hover:text-stone-900 hover:bg-stone-100 border border-transparent"
             )}
-            title={showBoxes ? "Box labels (L)" : "Enable Boxes first (B) to access labels"}
+            title="Toggle box labels (L)"
           >
-            <Tag className={clsx("w-3.5 h-3.5", showLabels && showBoxes ? "text-accent" : "text-txt-tertiary")} />
+            <Tag className={clsx("w-3.5 h-3.5", showLabels ? "text-amber-700 stroke-[2.2]" : "text-stone-400")} />
             <span>Labels</span>
           </button>
-
-          {onToggleAnnotatedMode && (
-            <button
-              onClick={onToggleAnnotatedMode}
-              aria-pressed={useAnnotatedStream}
-              className={clsx(
-                "h-7 px-2 rounded-sm flex items-center gap-1 transition-colors text-xs font-medium ml-1",
-                useAnnotatedStream
-                  ? "bg-accent text-accent-fg shadow-sm font-semibold"
-                  : "text-txt-secondary hover:text-txt-primary hover:bg-surface-raised"
-              )}
-              title="Toggle burned-in annotated video stream"
-            >
-              <Film className={clsx("w-3.5 h-3.5", useAnnotatedStream ? "text-accent-fg" : "text-txt-tertiary")} />
-              <span>{useAnnotatedStream ? "Burned-in (ON)" : "Burned-in Video"}</span>
-            </button>
-          )}
         </div>
 
         {/* Speed Selector */}
         <div className="relative">
           <button
             onClick={() => setSpeedMenuOpen(!speedMenuOpen)}
-            className="h-7 px-2 rounded-sm text-txt-secondary hover:text-txt-primary hover:bg-surface-raised font-mono"
+            className="h-7 px-2 rounded-sm text-stone-600 hover:text-stone-900 hover:bg-stone-100 font-mono"
             title="Playback speed"
           >
             {playbackSpeed}×
@@ -189,7 +169,7 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
 
           {speedMenuOpen && (
             <div
-              className="absolute bottom-full mb-1 right-0 bg-surface-raised border border-border-default rounded-md shadow-float p-1 text-xs space-y-0.5 z-30"
+              className="absolute bottom-full mb-1 right-0 bg-white border border-stone-200 rounded-md shadow-float p-1 text-xs space-y-0.5 z-30"
               onMouseLeave={() => setSpeedMenuOpen(false)}
             >
               {speeds.map((s) => (
@@ -201,7 +181,7 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
                   }}
                   className={clsx(
                     "w-full text-left px-2 py-1 rounded-sm font-mono",
-                    playbackSpeed === s ? "bg-accent-subtle text-accent-text" : "text-txt-primary hover:bg-surface"
+                    playbackSpeed === s ? "bg-amber-100 text-amber-900 font-semibold" : "text-stone-800 hover:bg-stone-100"
                   )}
                 >
                   {s}×
@@ -215,11 +195,11 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
         <div className="flex items-center gap-1">
           <button
             onClick={onToggleMute}
-            className="p-1 rounded-sm text-txt-secondary hover:text-txt-primary hover:bg-surface-raised"
+            className="p-1 rounded-sm text-stone-600 hover:text-stone-900 hover:bg-stone-100"
             title="Mute/Unmute (M)"
           >
             {isMuted || volume === 0 ? (
-              <VolumeX className="w-4 h-4 text-txt-tertiary" />
+              <VolumeX className="w-4 h-4 text-stone-400" />
             ) : (
               <Volume2 className="w-4 h-4" />
             )}
@@ -231,7 +211,7 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
             step="0.05"
             value={isMuted ? 0 : volume}
             onChange={(e) => onChangeVolume(parseFloat(e.target.value))}
-            className="w-16 h-1 bg-border-default rounded-full accent-accent cursor-pointer"
+            className="w-16 h-1 bg-stone-200 rounded-full accent-amber-600 cursor-pointer"
           />
         </div>
 

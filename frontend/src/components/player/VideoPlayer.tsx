@@ -159,13 +159,14 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   }, [selectedDetectionId, onSelectDetection]);
 
   const handleToggleLabels = useCallback(() => {
-    setShowBoxes((currentBoxes) => {
-      if (currentBoxes) {
-        setShowLabels((prev) => !prev);
+    setShowLabels((prevLabels) => {
+      const nextLabels = !prevLabels;
+      if (nextLabels && !showBoxes) {
+        setShowBoxes(true);
       }
-      return currentBoxes;
+      return nextLabels;
     });
-  }, []);
+  }, [showBoxes]);
 
   const handleToggleAnnotatedMode = useCallback(() => {
     if (videoRef.current) {
@@ -342,18 +343,17 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   return (
     <div
       ref={containerRef}
-      data-zone="dark"
-      className={`flex flex-col flex-1 bg-app overflow-hidden ${className}`}
+      className={`flex flex-col flex-1 bg-white overflow-hidden ${className}`}
     >
-      {/* Black Video Stage */}
-      <div className="relative flex-1 bg-stage flex items-center justify-center overflow-hidden min-h-[300px]">
+      {/* Light Clean Video Stage */}
+      <div className="relative flex-1 bg-stone-100/90 p-2 sm:p-4 flex items-center justify-center overflow-hidden min-h-[300px]">
         <div
-          className="relative max-w-full max-h-full flex items-center justify-center"
+          className="relative max-w-full max-h-full flex items-center justify-center rounded-md overflow-hidden bg-stone-950 shadow-sm border border-stone-200"
           style={{ aspectRatio }}
         >
           <video
             ref={videoRef}
-            src={currentStreamSource}
+            src={streamUrl}
             className="w-full h-full object-contain cursor-pointer"
             onClick={handleTogglePlay}
             onTimeUpdate={() => {
@@ -384,25 +384,23 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           {/* Buffering Indicator */}
           {isBuffering && (
             <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-              <Loader2 className="w-8 h-8 text-accent animate-spin" />
+              <Loader2 className="w-8 h-8 text-amber-500 animate-spin" />
             </div>
           )}
 
           {/* Interactive Bounding Box Detection Overlay */}
-          {!useAnnotatedStream && (
-            <DetectionOverlay
-              detections={currentDetections}
-              selectedId={selectedDetectionId}
-              onSelectDetection={onSelectDetection}
-              showBoxes={showBoxes}
-              showLabels={showBoxes && showLabels}
-            />
-          )}
+          <DetectionOverlay
+            detections={currentDetections}
+            selectedId={selectedDetectionId}
+            onSelectDetection={onSelectDetection}
+            showBoxes={showBoxes}
+            showLabels={showBoxes && showLabels}
+          />
 
           {/* Stage Semantic Match Chip (§8C top-right of stage) */}
           {activeMatch && (
-            <div className="absolute top-3 right-3 px-2 py-1 rounded-sm bg-overlay-chip border border-border-strong text-txt-primary font-mono text-xs flex items-center gap-1.5 shadow-md z-20">
-              <Diamond className="w-3.5 h-3.5 text-txt-primary fill-current" />
+            <div className="absolute top-3 right-3 px-2 py-1 rounded-sm bg-white/95 border border-stone-300 text-stone-900 font-mono text-xs flex items-center gap-1.5 shadow-md z-20 backdrop-blur-xs">
+              <Diamond className="w-3.5 h-3.5 text-stone-900 fill-current" />
               <span>Frame match · similarity {formatScore(activeMatch.best_score)}</span>
             </div>
           )}
