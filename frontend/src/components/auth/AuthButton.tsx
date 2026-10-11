@@ -86,18 +86,20 @@ export const AuthButton: React.FC<{ className?: string }> = ({ className = "" })
         aria-label="User account menu"
         aria-expanded={dropdownOpen}
       >
-        {userPhoto ? (
-          <img
-            src={userPhoto}
-            alt={displayName}
-            referrerPolicy="no-referrer"
-            className="w-6.5 h-6.5 rounded-full object-cover border border-amber-500/40 shrink-0"
-          />
-        ) : (
-          <div className="w-6.5 h-6.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300/60 flex items-center justify-center font-bold text-xs shrink-0">
-            {displayName[0]?.toUpperCase() || <UserIcon className="w-3.5 h-3.5" />}
-          </div>
-        )}
+        <div className="w-6 h-6 rounded-full overflow-hidden shrink-0 border border-amber-500/40 bg-amber-100 flex items-center justify-center">
+          {userPhoto ? (
+            <img
+              src={userPhoto}
+              alt={displayName}
+              referrerPolicy="no-referrer"
+              className="w-full h-full object-cover block"
+            />
+          ) : (
+            <span className="font-bold text-xs text-amber-900 leading-none">
+              {displayName[0]?.toUpperCase() || <UserIcon className="w-3.5 h-3.5" />}
+            </span>
+          )}
+        </div>
 
         <div className="flex flex-col text-left leading-tight pr-0.5">
           <span className="font-semibold text-stone-900 max-w-[130px] sm:max-w-[180px] truncate">
@@ -117,18 +119,20 @@ export const AuthButton: React.FC<{ className?: string }> = ({ className = "" })
           {/* Header user summary */}
           <div className="px-3.5 py-2.5 space-y-1.5">
             <div className="flex items-center gap-2.5">
-              {userPhoto ? (
-                <img
-                  src={userPhoto}
-                  alt={displayName}
-                  referrerPolicy="no-referrer"
-                  className="w-9 h-9 rounded-full object-cover border border-amber-500/40 shrink-0"
-                />
-              ) : (
-                <div className="w-9 h-9 rounded-full bg-amber-100 text-amber-900 flex items-center justify-center font-bold text-sm shrink-0">
-                  {displayName[0]?.toUpperCase() || "U"}
-                </div>
-              )}
+              <div className="w-9 h-9 rounded-full overflow-hidden shrink-0 border border-amber-500/40 bg-amber-100 flex items-center justify-center">
+                {userPhoto ? (
+                  <img
+                    src={userPhoto}
+                    alt={displayName}
+                    referrerPolicy="no-referrer"
+                    className="w-full h-full object-cover block"
+                  />
+                ) : (
+                  <span className="font-bold text-sm text-amber-900 leading-none">
+                    {displayName[0]?.toUpperCase() || "U"}
+                  </span>
+                )}
+              </div>
               <div className="min-w-0 flex-1">
                 <div className="font-semibold text-stone-900 truncate text-[13px]">{displayName}</div>
                 <div className="text-[11px] text-stone-500 truncate">{user.email}</div>

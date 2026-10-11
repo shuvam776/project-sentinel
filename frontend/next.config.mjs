@@ -4,12 +4,15 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  webpack: (config, { isServer }) => {
-    if (isServer) {
-      // Prevents server vendor-chunk splitting that causes 'Cannot find module ./vendor-chunks/...' on Windows
-      config.optimization.splitChunks = false;
-    }
-    return config;
+
+  async redirects() {
+    return [
+      {
+        source: "/video/:id",
+        destination: "/videos/:id",
+        permanent: true,
+      },
+    ];
   },
   async rewrites() {
     return [

@@ -43,7 +43,7 @@ export default function HomePage() {
             <AuthButton />
             <Link
               href="/library"
-              className="h-8.5 px-4 rounded-sm bg-[#09090B] text-white font-medium text-xs flex items-center gap-1.5 hover:bg-stone-800 active:bg-stone-900 border border-stone-800 transition-all shadow-xs"
+              className="h-9 px-4 rounded-sm bg-[#09090B] text-white font-medium text-xs flex items-center gap-1.5 hover:bg-stone-800 active:bg-stone-900 border border-stone-800 transition-all shadow-xs"
             >
               <span>Open Sentinel</span>
               <ArrowRight className="w-3.5 h-3.5" />

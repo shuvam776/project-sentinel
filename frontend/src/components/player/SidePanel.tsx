@@ -543,7 +543,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({
                   type="button"
                   onClick={handleTriggerMainDownload}
                   disabled={isGeneratingDownload}
-                  className="w-full h-8.5 bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white font-medium rounded-sm flex items-center justify-center gap-2 transition-all shadow-xs text-xs disabled:opacity-75 disabled:cursor-wait"
+                  className="w-full h-9 bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white font-medium rounded-sm flex items-center justify-center gap-2 transition-all shadow-xs text-xs disabled:opacity-75 disabled:cursor-wait"
                   title="Render and download video with annotations for current active classes"
                 >
                   {isGeneratingDownload ? (
@@ -701,7 +701,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({
             <div className="space-y-2 pt-1">
               <button
                 onClick={() => router.push(`/search?video=${video.id}`)}
-                className="w-full h-8.5 bg-white border border-stone-200 hover:border-stone-300 rounded-sm flex items-center justify-center gap-2 text-stone-800 font-medium transition-colors shadow-2xs"
+                className="w-full h-9 bg-white border border-stone-200 hover:border-stone-300 rounded-sm flex items-center justify-center gap-2 text-stone-800 font-medium transition-colors shadow-2xs"
                 title="Search within this video"
               >
                 <Search className="w-3.5 h-3.5 text-amber-600" /> Search This Video
@@ -710,7 +710,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({
               <a
                 href={downloadVideoUrl}
                 download={video.original_filename}
-                className="w-full h-8.5 bg-white border border-stone-200 hover:border-stone-300 rounded-sm flex items-center justify-center gap-2 text-stone-800 font-medium transition-colors shadow-2xs"
+                className="w-full h-9 bg-white border border-stone-200 hover:border-stone-300 rounded-sm flex items-center justify-center gap-2 text-stone-800 font-medium transition-colors shadow-2xs"
                 title="Download original raw video without annotations"
               >
                 <Download className="w-3.5 h-3.5 text-stone-500" /> Download Original Raw Video
@@ -719,7 +719,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({
               {onDeleteVideo && (
                 <button
                   onClick={onDeleteVideo}
-                  className="w-full h-8.5 bg-transparent border border-rose-200 text-rose-700 rounded-sm flex items-center justify-center gap-2 hover:bg-rose-50 font-medium transition-colors"
+                  className="w-full h-9 bg-transparent border border-rose-200 text-rose-700 rounded-sm flex items-center justify-center gap-2 hover:bg-rose-50 font-medium transition-colors"
                 >
                   <Trash2 className="w-3.5 h-3.5 text-rose-600" /> Delete Video…
                 </button>
