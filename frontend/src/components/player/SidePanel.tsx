@@ -12,6 +12,7 @@ import {
   Loader2,
   CheckCircle2,
   Info,
+  Clock,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { useRouter } from "next/navigation";
@@ -66,7 +67,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({
   const [downloadingClass, setDownloadingClass] = useState<string | null>(null);
 
   // Sub-header controls
-  const [detectionViewMode, setDetectionViewMode] = useState<"current" | "all">("current");
+  const [detectionViewMode, setDetectionViewMode] = useState<"timestamps" | "current" | "all">("timestamps");
   const [matchesSortMode, setMatchesSortMode] = useState<"time" | "rank">("rank");
 
   // Resizable width state (min 320px, max 480px, default 360px)
@@ -125,7 +126,9 @@ export const SidePanel: React.FC<SidePanelProps> = ({
     return Array.from(new Set(detections.map((d) => d.class_name)));
   }, [detections]);
 
-  const activeClasses = propsSelectedClasses ?? localSelectedClasses;
+  const rawActive = propsSelectedClasses ?? localSelectedClasses;
+  const activeClasses =
+    rawActive && rawActive.length > 0 ? rawActive : supportedClasses;
   const handleClassesChange = (newClasses: string[]) => {
     if (onSelectClasses) {
       onSelectClasses(newClasses);
@@ -161,6 +164,37 @@ export const SidePanel: React.FC<SidePanelProps> = ({
       (d) => Math.abs(d.timestamp - currentTime) <= windowSec
     );
   }, [filteredDetections, currentTime, video.sample_rate]);
+
+  // Structured Timestamps Breakdown: Groups detections chronologically by second/timestamp
+  const timestampBreakdown = React.useMemo(() => {
+    if (filteredDetections.length === 0) return [];
+
+    const map = new Map<number, Detection[]>();
+    for (const d of filteredDetections) {
+      const t = Math.round(d.timestamp * 10) / 10;
+      if (!map.has(t)) map.set(t, []);
+      map.get(t)!.push(d);
+    }
+
+    return Array.from(map.entries())
+      .map(([time, items]) => {
+        const classMap: Record<string, { count: number; maxConf: number }> = {};
+        for (const item of items) {
+          if (!classMap[item.class_name]) {
+            classMap[item.class_name] = { count: 0, maxConf: item.confidence };
+          }
+          classMap[item.class_name].count += 1;
+          classMap[item.class_name].maxConf = Math.max(classMap[item.class_name].maxConf, item.confidence);
+        }
+        return {
+          time,
+          items,
+          classMap,
+          total: items.length,
+        };
+      })
+      .sort((a, b) => a.time - b.time);
+  }, [filteredDetections]);
 
   // Sorted Matches
   const sortedMatches = React.useMemo(() => {
@@ -378,22 +412,39 @@ export const SidePanel: React.FC<SidePanelProps> = ({
               />
             )}
 
-            {/* Sub-header: Current Frame vs All Segmented Control */}
-            <div className="flex items-center justify-between pt-1 pb-1 border-t border-border-subtle">
-              <span className="text-[11px] text-txt-secondary font-medium">View Mode</span>
-              <div className="flex items-center gap-1 bg-surface-raised p-0.5 rounded-sm border border-border-subtle text-[11px]">
+            {/* Sub-header: Timestamps vs Current Frame vs All Segmented Control */}
+            <div className="flex items-center justify-between pt-1 pb-1 border-t border-stone-200">
+              <span className="text-[11px] text-stone-600 font-medium">Breakdown</span>
+              <div className="flex items-center gap-0.5 bg-stone-100 p-0.5 rounded-sm border border-stone-200 text-[11px]">
+                <button
+                  onClick={() => setDetectionViewMode("timestamps")}
+                  className={clsx(
+                    "px-2 py-0.5 rounded-xs transition-colors font-medium flex items-center gap-1",
+                    detectionViewMode === "timestamps"
+                      ? "bg-white text-stone-900 shadow-xs"
+                      : "text-stone-500 hover:text-stone-800"
+                  )}
+                  title="Grouped chronological timestamps breakdown"
+                >
+                  <Clock className="w-3 h-3 text-amber-600" />
+                  <span>Timestamps</span>
+                  <span className="font-mono text-[10px] text-stone-500">
+                    ({timestampBreakdown.length})
+                  </span>
+                </button>
                 <button
                   onClick={() => setDetectionViewMode("current")}
                   className={clsx(
                     "px-2 py-0.5 rounded-xs transition-colors font-medium flex items-center gap-1",
                     detectionViewMode === "current"
-                      ? "bg-surface text-txt-primary shadow-xs"
-                      : "text-txt-tertiary hover:text-txt-primary"
+                      ? "bg-white text-stone-900 shadow-xs"
+                      : "text-stone-500 hover:text-stone-800"
                   )}
+                  title="Detections on current video frame"
                 >
-                  <span>Current frame</span>
+                  <span>Current</span>
                   {currentFrameDetections.length > 0 && (
-                    <span className="font-mono text-[10px] text-amber-600 font-semibold">
+                    <span className="font-mono text-[10px] text-amber-700 font-semibold">
                       ({currentFrameDetections.length})
                     </span>
                   )}
@@ -403,20 +454,92 @@ export const SidePanel: React.FC<SidePanelProps> = ({
                   className={clsx(
                     "px-2 py-0.5 rounded-xs transition-colors font-medium flex items-center gap-1",
                     detectionViewMode === "all"
-                      ? "bg-surface text-txt-primary shadow-xs"
-                      : "text-txt-tertiary hover:text-txt-primary"
+                      ? "bg-white text-stone-900 shadow-xs"
+                      : "text-stone-500 hover:text-stone-800"
                   )}
+                  title="All individual detection boxes"
                 >
                   <span>All</span>
-                  <span className="font-mono text-[10px] text-txt-tertiary">
+                  <span className="font-mono text-[10px] text-stone-500">
                     ({filteredDetections.length})
                   </span>
                 </button>
               </div>
             </div>
 
-            {/* Detections List: Current Frame Mode */}
-            {detectionViewMode === "current" ? (
+            {/* Detections List: Timestamps Mode (Default, Structured) */}
+            {detectionViewMode === "timestamps" ? (
+              <div className="space-y-1.5 max-h-[460px] overflow-y-auto pr-0.5">
+                {timestampBreakdown.length === 0 ? (
+                  <div className="p-4 text-center text-xs text-stone-500 bg-stone-50 rounded-sm border border-stone-200">
+                    No detections found for the selected classes.
+                  </div>
+                ) : (
+                  timestampBreakdown.map((evt) => {
+                    const isNear = Math.abs(currentTime - evt.time) <= 0.6;
+                    return (
+                      <div
+                        key={evt.time}
+                        onClick={() => onSeek(evt.time)}
+                        className={clsx(
+                          "p-2 rounded-sm border transition-all cursor-pointer space-y-1.5 select-none",
+                          isNear
+                            ? "bg-amber-50/90 border-amber-400 ring-1 ring-amber-300 shadow-2xs"
+                            : "bg-white border-stone-200 hover:border-amber-200 hover:bg-stone-50/80"
+                        )}
+                        title={`Jump to ${formatTimestamp(evt.time, true)}`}
+                      >
+                        {/* Header: Timestamp badge + total count */}
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1.5 font-mono text-xs font-semibold text-stone-900">
+                            <span
+                              className={clsx(
+                                "px-1.5 py-0.5 rounded text-[11px] font-bold inline-flex items-center gap-1",
+                                isNear
+                                  ? "bg-amber-600 text-white"
+                                  : "bg-stone-100 text-stone-800 border border-stone-200"
+                              )}
+                            >
+                              <Clock className="w-3 h-3" />
+                              {formatTimestamp(evt.time, true)}
+                            </span>
+                          </div>
+                          <span className="text-[10px] font-mono text-stone-500">
+                            {evt.total} {evt.total === 1 ? "object" : "objects"}
+                          </span>
+                        </div>
+
+                        {/* Breakdown tags */}
+                        <div className="flex flex-wrap gap-1">
+                          {Object.entries(evt.classMap).map(([cls, info]) => (
+                            <span
+                              key={cls}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onSeek(evt.time);
+                                const firstMatch = evt.items.find((item) => item.class_name === cls);
+                                if (firstMatch) onSelectDetection?.(firstMatch);
+                              }}
+                              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-50 text-amber-950 border border-amber-200/80 hover:bg-amber-100"
+                            >
+                              <Square className="w-2.5 h-2.5 text-amber-600" />
+                              <span className="capitalize">{cls}</span>
+                              {info.count > 1 && (
+                                <span className="font-mono text-stone-500">×{info.count}</span>
+                              )}
+                              <span className="font-mono text-amber-800 text-[9px] opacity-80">
+                                {Math.round(info.maxConf * 100)}%
+                              </span>
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            ) : detectionViewMode === "current" ? (
+              /* Detections List: Current Frame Mode */
               <div className="space-y-1">
                 {currentFrameDetections.length === 0 ? (
                   <div className="p-4 text-center text-xs text-txt-tertiary bg-surface-inset rounded-sm border border-border-subtle space-y-1">
@@ -424,7 +547,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({
                       No detections at {formatTimestamp(currentTime, true)}
                     </p>
                     <p className="text-[11px]">
-                      Play video to watch live continuous detections per FPS, or switch view to <strong>All</strong>.
+                      Play video to watch live continuous detections per FPS, or switch view to <strong>Timestamps</strong>.
                     </p>
                   </div>
                 ) : (
@@ -463,7 +586,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({
               </div>
             ) : (
               /* Detections List: All Mode */
-              <div className="space-y-1">
+              <div className="space-y-1 max-h-[460px] overflow-y-auto pr-0.5">
                 {filteredDetections.length === 0 ? (
                   <div className="p-4 text-center text-xs text-txt-tertiary bg-surface-inset rounded-sm border border-border-subtle">
                     {activeClasses.length === 0

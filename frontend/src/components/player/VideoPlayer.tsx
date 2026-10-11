@@ -7,7 +7,7 @@ import PlayerControls from "./PlayerControls";
 import Timeline from "./Timeline";
 import KeyboardShortcutsModal from "./KeyboardShortcutsModal";
 import { VideoItem, SearchResultSegment, Detection } from "@/types";
-import { formatScore } from "@/lib/format";
+import { formatScore, formatTimestamp } from "@/lib/format";
 import { getVideoStreamUrl, getVideoDownloadUrl } from "@/lib/api";
 
 interface VideoPlayerProps {
@@ -56,6 +56,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [playbackSpeed, setPlaybackSpeed] = useState(1.0);
   const [isMuted, setIsMuted] = useState(false);
   const [volume, setVolume] = useState(1.0);
+  const [isLooping, setIsLooping] = useState(false);
   const [isBuffering, setIsBuffering] = useState(false);
 
   // Seek initial time on metadata load
@@ -193,6 +194,48 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       }
     }
   }, [isPlaying]);
+
+  const handleSeekRelative = useCallback(
+    (deltaSeconds: number) => {
+      handleSeek(Math.max(0, Math.min(duration, currentTime + deltaSeconds)));
+    },
+    [currentTime, duration, handleSeek]
+  );
+
+  const handleCaptureSnapshot = useCallback(() => {
+    if (!videoRef.current) return;
+    try {
+      const v = videoRef.current;
+      const canvas = document.createElement("canvas");
+      canvas.width = v.videoWidth || 1920;
+      canvas.height = v.videoHeight || 1080;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.95);
+      const a = document.createElement("a");
+      a.href = dataUrl;
+      const timeStr = formatTimestamp(v.currentTime).replace(":", "-");
+      const baseName = video.original_filename?.replace(/\.[^/.]+$/, "") || "frame";
+      a.download = `${baseName}_snapshot_${timeStr}.jpg`;
+      a.click();
+    } catch (e) {
+      console.error("Failed to capture snapshot", e);
+    }
+  }, [video.original_filename]);
+
+  const handleTogglePiP = useCallback(async () => {
+    if (!videoRef.current) return;
+    try {
+      if (document.pictureInPictureElement) {
+        await document.exitPictureInPicture();
+      } else {
+        await videoRef.current.requestPictureInPicture();
+      }
+    } catch (e) {
+      console.error("Picture-in-picture error", e);
+    }
+  }, []);
 
   // Keyboard Shortcuts per design.md §10.4
   useEffect(() => {
@@ -354,6 +397,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           <video
             ref={videoRef}
             src={streamUrl}
+            loop={isLooping}
             className="w-full h-full object-contain cursor-pointer"
             onClick={handleTogglePlay}
             onTimeUpdate={() => {
@@ -413,6 +457,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         onTogglePlay={handleTogglePlay}
         currentTime={currentTime}
         duration={duration}
+        onSeekRelative={handleSeekRelative}
         onPrevMatch={navTargets.length > 0 ? handlePrevMatch : undefined}
         onNextMatch={navTargets.length > 0 ? handleNextMatch : undefined}
         hasMatchesOrDetections={navTargets.length > 0}
@@ -437,6 +482,10 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           setVolume(vol);
           if (videoRef.current) videoRef.current.volume = vol;
         }}
+        isLooping={isLooping}
+        onToggleLoop={() => setIsLooping((prev) => !prev)}
+        onCaptureSnapshot={handleCaptureSnapshot}
+        onTogglePiP={handleTogglePiP}
         onToggleFullscreen={() => {
           if (containerRef.current) containerRef.current.requestFullscreen();
         }}

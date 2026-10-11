@@ -96,17 +96,6 @@ export const Timeline: React.FC<TimelineProps> = ({
         <span className="hidden sm:inline" style={{ left: "75%" }}>
           {formatTimestamp(threeQuarterTime)}
         </span>
-
-        {/* Legend */}
-        <div className="flex items-center gap-3 bg-surface/80 px-1 rounded-xs">
-          <span className="flex items-center gap-1 font-sans">
-            <Diamond className="w-2.5 h-2.5 text-txt-primary fill-current" /> Match
-          </span>
-          <span className="flex items-center gap-1 font-sans">
-            <Square className="w-2.5 h-2.5 text-accent" /> Detection
-          </span>
-        </div>
-
         <span>{formatTimestamp(safeDuration)}</span>
       </div>
 
