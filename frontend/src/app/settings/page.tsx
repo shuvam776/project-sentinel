@@ -189,9 +189,11 @@ export default function SettingsPage() {
             <div className="flex justify-between">
               <span className="text-txt-tertiary">API Host</span>
               <span className="text-txt-primary">
-                {process.env.NEXT_PUBLIC_API_URL
-                  ? process.env.NEXT_PUBLIC_API_URL.replace(/^https?:\/\//, "").replace(/\/api\/v1\/?$/, "")
-                  : "127.0.0.1:8000"}
+                {process.env.API_URL
+                  ? process.env.API_URL.replace(/^https?:\/\//, "").replace(/\/api\/v1\/?$/, "")
+                  : typeof window !== "undefined"
+                    ? window.location.host
+                    : "127.0.0.1:8000"}
               </span>
             </div>
             <div className="flex justify-between">

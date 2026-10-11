@@ -342,7 +342,7 @@ Configured full PostgreSQL and Supabase integration using cloud connection pooli
    * Passwords with `@` must be percent-encoded (`%40`). When `psycopg2` connects, it automatically decodes `%40` to the authenticating password.
 
 3. **Supabase Client Credentials & Dual Environment Setup**:
-   * Frontend: Saved `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` in [frontend/.env.local](file:///c:/New%20folder/Desktop/aiml/dl/sentinel/frontend/.env.local).
+   * Frontend: Saved Supabase credentials in frontend/.env.local and configured FastAPI authentication.
    * Backend: Saved `SENTINEL_DATABASE_URL`, `SENTINEL_SUPABASE_URL`, and `SENTINEL_SUPABASE_KEY` in [backend/.env](file:///c:/New%20folder/Desktop/aiml/dl/sentinel/backend/.env).
    * Docker: Injected all Supabase variables into [docker-compose.yml](file:///c:/New%20folder/Desktop/aiml/dl/sentinel/docker-compose.yml) with sensible defaults.
 

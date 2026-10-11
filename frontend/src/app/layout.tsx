@@ -24,7 +24,7 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   metadataBase: new URL(
-    process.env.NEXT_PUBLIC_APP_URL || "https://sentinel-video-ai.vercel.app"
+    process.env.APP_URL || "https://sentinel-video-ai.vercel.app"
   ),
   title: {
     default: "Sentinel — Multimodal Video Search & Intelligence",

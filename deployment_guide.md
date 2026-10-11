@@ -43,8 +43,6 @@ If deploying as a standard Web Service:
    | Key | Value | Notes |
    | :--- | :--- | :--- |
    | `BACKEND_URL` | `https://your-render-app.onrender.com` | Live Render backend URL (no public prefix needed) |
-   | `NEXT_PUBLIC_SUPABASE_URL` | `https://rlyfxhdieguikjieucrc.supabase.co` | Supabase endpoint |
-   | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | `sb_publishable_nExHPyQYfn3efstyw44iHw_jQcbJ-sz` | Supabase Anon Key |
 4. Click **Deploy**.
 5. Vercel will build and launch your application at `https://your-project.vercel.app`.
 

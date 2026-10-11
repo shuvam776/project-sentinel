@@ -1,10 +1,13 @@
 import { VideoItem, VideoListResponse, SearchResponse, Detection, HealthInfo } from "@/types";
 
 const API_BASE = (
-  process.env.NEXT_PUBLIC_API_URL ||
+  process.env.API_URL ||
   (typeof window !== "undefined" ? "/api/v1" : "http://127.0.0.1:8000/api/v1")
 ).replace(/\/+$/, "");
-const HEALTH_URL = (process.env.NEXT_PUBLIC_HEALTH_URL || (typeof window !== "undefined" ? "/health" : API_BASE.replace(/\/api\/v1\/?$/, "/health"))).replace(/\/+$/, "");
+const HEALTH_URL = (
+  process.env.HEALTH_URL ||
+  (typeof window !== "undefined" ? "/health" : API_BASE.replace(/\/api\/v1\/?$/, "/health"))
+).replace(/\/+$/, "");
 
 function getAuthHeaders(): Record<string, string> {
   const headers: Record<string, string> = {};
