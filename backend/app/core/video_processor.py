@@ -1,8 +1,14 @@
 import subprocess
+import shutil
 from pathlib import Path
 from typing import Generator
 import cv2
-import imageio_ffmpeg
+
+try:
+    import imageio_ffmpeg
+except ImportError:
+    imageio_ffmpeg = None
+
 from app.config import settings
 
 
@@ -32,8 +38,16 @@ class VideoProcessor:
 
     @staticmethod
     def get_ffmpeg_path() -> str:
-        """Returns the absolute path to the bundled FFmpeg binary."""
-        return imageio_ffmpeg.get_ffmpeg_exe()
+        """Returns the absolute path to the bundled FFmpeg binary or system ffmpeg."""
+        if imageio_ffmpeg is not None:
+            try:
+                return imageio_ffmpeg.get_ffmpeg_exe()
+            except Exception:
+                pass
+        system_ffmpeg = shutil.which("ffmpeg")
+        if system_ffmpeg:
+            return system_ffmpeg
+        return "ffmpeg"
 
     @classmethod
     def get_metadata(cls, video_path: str | Path) -> VideoMetadata:
