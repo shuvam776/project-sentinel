@@ -1,0 +1,65 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual Environments
+.venv/
+venv/
+env/
+ENV/
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Testing & Coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# Local databases & media (preserve folder structure via .gitkeep)
+*.db
+*.sqlite
+*.sqlite3
+data/*.db
+data/*.sqlite
+!data/.gitkeep
+!data/test_sample.mp4
+
+# Secrets & Environment variables
+.env
+.env.*
+firebase_service_account*.json
+*service_account*.json
+
+# Machine learning model caches
+.cache/
+torch_cache/
+huggingface/
+*.pt
+*.pth
+*.bin
+*.onnx
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

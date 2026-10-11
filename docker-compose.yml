@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: sentinel-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - SENTINEL_DEVICE_OVERRIDE=cpu # Runs CPU or GPU via nvidia runtime if enabled
+      - SENTINEL_DEFAULT_SAMPLE_RATE=1.0
+      - SENTINEL_CLOUDINARY_CLOUD_NAME=${SENTINEL_CLOUDINARY_CLOUD_NAME:-}
+      - SENTINEL_CLOUDINARY_API_KEY=${SENTINEL_CLOUDINARY_API_KEY:-}
+      - SENTINEL_CLOUDINARY_API_SECRET=${SENTINEL_CLOUDINARY_API_SECRET:-}
+      - SENTINEL_CLOUDINARY_ENABLED=${SENTINEL_CLOUDINARY_ENABLED:-true}
+      - SENTINEL_DATABASE_URL=${SENTINEL_DATABASE_URL:-}
+      - SENTINEL_SUPABASE_URL=${SENTINEL_SUPABASE_URL:-}
+      - SENTINEL_SUPABASE_KEY=${SENTINEL_SUPABASE_KEY:-}
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: sentinel-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
+      - NEXT_PUBLIC_HEALTH_URL=http://localhost:8000/health
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL:-}
+      - NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=${NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:-}
+    depends_on:
+      - backend
+    restart: unless-stopped

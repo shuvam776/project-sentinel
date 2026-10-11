@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 100" fill="none">
+  <defs>
+    <linearGradient id="cctv-amber-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F59E0B" />
+      <stop offset="100%" stop-color="#C2834E" />
+    </linearGradient>
+    <linearGradient id="cctv-glow-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F59E0B" stop-opacity="0.14" />
+      <stop offset="100%" stop-color="#C2834E" stop-opacity="0.04" />
+    </linearGradient>
+  </defs>
+
+  <!-- Sentinel Surveillance Reticle (Left side 64x64 centered at y=18) -->
+  <g transform="translate(18, 18)">
+    <rect x="0" y="0" width="64" height="64" rx="10" fill="url(#cctv-glow-grad)" stroke="url(#cctv-amber-grad)" stroke-width="3" />
+    <path d="M10 5H5V10" stroke="#D97706" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M54 5H59V10" stroke="#D97706" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M5 54V59H10" stroke="#D97706" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M59 54V59H54" stroke="#D97706" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+    <rect x="20" y="20" width="24" height="24" rx="5" fill="#18181B" stroke="#F59E0B" stroke-width="1.5" />
+    <circle cx="32" cy="32" r="6" fill="#F59E0B" />
+    <circle cx="33.5" cy="30.5" r="2" fill="#FFFFFF" />
+  </g>
+
+  <!-- Typography -->
+  <text x="104" y="55" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="34" font-weight="700" letter-spacing="-0.03em" fill="#09090B">
+    Sentinel
+  </text>
+  <text x="104" y="74" font-family="JetBrains Mono, Menlo, monospace" font-size="11" font-weight="600" letter-spacing="0.16em" fill="#B45309" text-transform="uppercase">
+    SURVEILLANCE &amp; VIDEO INTELLIGENCE
+  </text>
+</svg>
