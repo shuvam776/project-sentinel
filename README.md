@@ -239,4 +239,5 @@ backend/.venv/Scripts/pytest backend/tests -v
 - `GET /health`: Diagnostics reporting hardware device (CUDA/CPU) and model status.
 
 #   p r o j e c t - s e n t i n e l  
+ #   p r o j e c t - s e n t i n e l  
  
