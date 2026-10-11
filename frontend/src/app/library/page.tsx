@@ -256,6 +256,16 @@ export default function LibraryPage() {
             {/* Toolbar */}
             <div className="flex flex-wrap items-center justify-between gap-3 mb-4 min-h-8">
               <div className="flex items-center gap-2">
+                {/* Upload Button */}
+                <Button
+                  variant="primary"
+                  size="sm"
+                  icon={<Upload className="w-3.5 h-3.5" />}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  Upload video
+                </Button>
+
                 {/* Name Filter */}
                 <div className="relative w-64">
                   <Search className="w-3.5 h-3.5 text-txt-tertiary absolute left-2.5 top-1/2 -translate-y-1/2" />
@@ -393,79 +403,86 @@ export default function LibraryPage() {
 
             {/* BOARD VIEW */}
             {viewMode === "board" && (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 items-start">
-                {/* Column 1: Uploading */}
-                <div className="bg-well rounded-md p-3 space-y-3">
-                  <div className="flex items-center justify-between h-9 px-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-semibold text-txt-primary">Uploading</span>
-                      <span className="px-1.5 py-0.5 rounded-sm bg-surface-raised font-mono text-[11px] text-txt-secondary">
-                        {uploadingFiles.length + uploadingVideos.length}
-                      </span>
+              <div
+                className={clsx(
+                  "gap-5 items-start",
+                  uploadingFiles.length === 0 && uploadingVideos.length === 0 && indexingVideos.length === 0
+                    ? "grid grid-cols-1 lg:grid-cols-3"
+                    : (uploadingFiles.length > 0 || uploadingVideos.length > 0) && indexingVideos.length > 0
+                    ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4"
+                    : "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3"
+                )}
+              >
+                {/* Column 1: Uploading (Only appears when videos/files are actively uploading) */}
+                {(uploadingFiles.length > 0 || uploadingVideos.length > 0) && (
+                  <div className="bg-well rounded-md p-3.5 space-y-3 animate-in fade-in duration-200">
+                    <div className="flex items-center justify-between h-9 px-1">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                        <span className="text-xs font-semibold text-txt-primary">Uploading</span>
+                        <span className="px-1.5 py-0.5 rounded-sm bg-amber-500/10 text-amber-700 font-mono text-[11px] font-medium">
+                          {uploadingFiles.length + uploadingVideos.length}
+                        </span>
+                      </div>
+                      <div title="Videos currently uploading or queued for index processing">
+                        <CircleHelp className="w-4 h-4 text-txt-tertiary cursor-pointer hover:text-txt-secondary" />
+                      </div>
                     </div>
-                    <div title="Videos currently uploading or queued for index processing">
-                      <CircleHelp className="w-4 h-4 text-txt-tertiary cursor-pointer hover:text-txt-secondary" />
-                    </div>
-                  </div>
 
-                  <div className="space-y-3">
-                    {uploadingFiles.map((up, idx) => (
-                      <div key={idx} className="bg-surface border border-border-default rounded-md p-3 space-y-2 text-xs">
-                        <div className="font-medium text-txt-primary truncate">{up.name}</div>
-                        <StatusIndicator status="uploading" progressPercent={up.percent} />
-                        <div className="w-full h-1 bg-border-subtle rounded-xs overflow-hidden">
-                          <div className="h-full bg-processing" style={{ width: `${up.percent}%` }} />
+                    <div className="space-y-3">
+                      {uploadingFiles.map((up, idx) => (
+                        <div key={idx} className="bg-surface border border-border-default rounded-md p-3 space-y-2 text-xs">
+                          <div className="font-medium text-txt-primary truncate">{up.name}</div>
+                          <StatusIndicator status="uploading" progressPercent={up.percent} />
+                          <div className="w-full h-1 bg-border-subtle rounded-xs overflow-hidden">
+                            <div className="h-full bg-processing" style={{ width: `${up.percent}%` }} />
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      ))}
 
-                    {uploadingVideos.map((video) => (
-                      <VideoCard key={video.id} video={video} onDelete={handleDelete} onRetry={handleRetry} onRename={handleRename} />
-                    ))}
-
-                    {uploadingFiles.length === 0 && uploadingVideos.length === 0 && (
-                      <div className="py-8 text-center space-y-2">
-                        <Upload className="w-6 h-6 text-txt-tertiary mx-auto" />
-                        <p className="text-xs text-txt-tertiary">Nothing uploading.</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Column 2: Indexing */}
-                <div className="bg-well rounded-md p-3 space-y-3">
-                  <div className="flex items-center justify-between h-9 px-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-semibold text-txt-primary">Indexing</span>
-                      <span className="px-1.5 py-0.5 rounded-sm bg-surface-raised font-mono text-[11px] text-txt-secondary">
-                        {indexingVideos.length}
-                      </span>
-                    </div>
-                    <div title="Videos still being indexed. Search may be incomplete.">
-                      <CircleHelp className="w-4 h-4 text-txt-tertiary cursor-pointer hover:text-txt-secondary" />
+                      {uploadingVideos.map((video) => (
+                        <VideoCard key={video.id} video={video} onDelete={handleDelete} onRetry={handleRetry} onRename={handleRename} />
+                      ))}
                     </div>
                   </div>
+                )}
 
-                  <div className="space-y-3">
-                    {indexingVideos.map((video) => (
-                      <VideoCard key={video.id} video={video} onDelete={handleDelete} onRetry={handleRetry} onRename={handleRename} />
-                    ))}
-
-                    {indexingVideos.length === 0 && (
-                      <div className="py-8 text-center space-y-2">
-                        <Loader2 className="w-6 h-6 text-txt-tertiary mx-auto" />
-                        <p className="text-xs text-txt-tertiary">No videos are being indexed.</p>
+                {/* Column 2: Indexing (Only appears when videos are actively indexing) */}
+                {indexingVideos.length > 0 && (
+                  <div className="bg-well rounded-md p-3.5 space-y-3 animate-in fade-in duration-200">
+                    <div className="flex items-center justify-between h-9 px-1">
+                      <div className="flex items-center gap-2">
+                        <Loader2 className="w-3.5 h-3.5 text-accent animate-spin" />
+                        <span className="text-xs font-semibold text-txt-primary">Indexing</span>
+                        <span className="px-1.5 py-0.5 rounded-sm bg-accent-subtle font-mono text-[11px] text-accent-text font-medium">
+                          {indexingVideos.length}
+                        </span>
                       </div>
-                    )}
-                  </div>
-                </div>
+                      <div title="Videos still being indexed. Search may be incomplete.">
+                        <CircleHelp className="w-4 h-4 text-txt-tertiary cursor-pointer hover:text-txt-secondary" />
+                      </div>
+                    </div>
 
-                {/* Column 3: Ready */}
-                <div className="bg-well rounded-md p-3 space-y-3">
+                    <div className="space-y-3">
+                      {indexingVideos.map((video) => (
+                        <VideoCard key={video.id} video={video} onDelete={handleDelete} onRetry={handleRetry} onRename={handleRename} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Column 3: Ready (Videos already indexed and ready) */}
+                <div
+                  className={clsx(
+                    "bg-well rounded-md p-3.5 space-y-3",
+                    uploadingFiles.length === 0 && uploadingVideos.length === 0 && indexingVideos.length === 0 && "lg:col-span-2"
+                  )}
+                >
                   <div className="flex items-center justify-between h-9 px-1">
                     <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500" />
                       <span className="text-xs font-semibold text-txt-primary">Ready</span>
-                      <span className="px-1.5 py-0.5 rounded-sm bg-surface-raised font-mono text-[11px] text-txt-secondary">
+                      <span className="px-1.5 py-0.5 rounded-sm bg-emerald-50 text-emerald-700 border border-emerald-200/60 font-mono text-[11px] font-medium">
                         {readyVideos.length}
                       </span>
                     </div>
@@ -474,26 +491,67 @@ export default function LibraryPage() {
                     </div>
                   </div>
 
-                  <div className="space-y-3">
+                  <div
+                    className={clsx(
+                      uploadingFiles.length === 0 && uploadingVideos.length === 0 && indexingVideos.length === 0
+                        ? "grid grid-cols-1 sm:grid-cols-2 gap-3.5"
+                        : "space-y-3"
+                    )}
+                  >
+                    {/* Upload Video Dropzone Tile inside Ready section */}
+                    <div
+                      onClick={() => fileInputRef.current?.click()}
+                      className="min-h-[160px] rounded-lg border-2 border-dashed border-border-default hover:border-accent hover:bg-accent-subtle/30 transition-all p-4 flex flex-col items-center justify-center text-center cursor-pointer group bg-surface/60"
+                      title="Click or drop video to upload"
+                    >
+                      <div className="w-9 h-9 rounded-full bg-surface-raised group-hover:bg-accent/10 border border-border-subtle flex items-center justify-center mb-1.5 transition-colors">
+                        <Upload className="w-4 h-4 text-txt-secondary group-hover:text-accent transition-colors" />
+                      </div>
+                      <span className="text-xs font-semibold text-txt-primary group-hover:text-accent transition-colors">
+                        Upload Video
+                      </span>
+                      <span className="text-[11px] text-txt-tertiary mt-0.5">
+                        Drop video file or click to browse
+                      </span>
+                    </div>
+
                     {readyVideos.map((video) => (
                       <VideoCard key={video.id} video={video} onDelete={handleDelete} onRetry={handleRetry} onRename={handleRename} />
                     ))}
-
-                    {readyVideos.length === 0 && (
-                      <div className="py-8 text-center space-y-2">
-                        <CheckCircle2 className="w-6 h-6 text-txt-tertiary mx-auto" />
-                        <p className="text-xs text-txt-tertiary">Videos appear here once indexed.</p>
-                      </div>
-                    )}
                   </div>
+
+                  {readyVideos.length === 0 && (
+                    <div className="py-8 text-center space-y-2">
+                      <CheckCircle2 className="w-6 h-6 text-txt-tertiary mx-auto" />
+                      <p className="text-xs text-txt-tertiary">Videos appear here once indexed.</p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Column 4: Needs attention */}
-                <div className="bg-well rounded-md p-3 space-y-3">
+                <div
+                  className={clsx(
+                    "bg-well rounded-md p-3.5 space-y-3",
+                    uploadingFiles.length === 0 && uploadingVideos.length === 0 && indexingVideos.length === 0 && "lg:col-span-1"
+                  )}
+                >
                   <div className="flex items-center justify-between h-9 px-1">
                     <div className="flex items-center gap-2">
+                      <span
+                        className={clsx(
+                          "w-2 h-2 rounded-full",
+                          needsAttentionVideos.length > 0 ? "bg-rose-500 animate-pulse" : "bg-txt-tertiary"
+                        )}
+                      />
                       <span className="text-xs font-semibold text-txt-primary">Needs attention</span>
-                      <span className="px-1.5 py-0.5 rounded-sm bg-surface-raised font-mono text-[11px] text-txt-secondary">
+                      <span
+                        className={clsx(
+                          "px-1.5 py-0.5 rounded-sm font-mono text-[11px] font-medium",
+                          needsAttentionVideos.length > 0
+                            ? "bg-rose-50 text-rose-700 border border-rose-200"
+                            : "bg-surface-raised text-txt-secondary"
+                        )}
+                      >
                         {needsAttentionVideos.length}
                       </span>
                     </div>
@@ -508,9 +566,10 @@ export default function LibraryPage() {
                     ))}
 
                     {needsAttentionVideos.length === 0 && (
-                      <div className="py-8 text-center space-y-2">
-                        <AlertTriangle className="w-6 h-6 text-txt-tertiary mx-auto" />
-                        <p className="text-xs text-txt-tertiary">No failed videos.</p>
+                      <div className="py-8 px-4 text-center rounded-md border border-dashed border-border-subtle bg-surface/40 space-y-2">
+                        <CheckCircle2 className="w-5 h-5 text-emerald-500 mx-auto" />
+                        <p className="text-xs font-medium text-txt-primary">All systems operational</p>
+                        <p className="text-[11px] text-txt-tertiary">No videos need attention.</p>
                       </div>
                     )}
                   </div>

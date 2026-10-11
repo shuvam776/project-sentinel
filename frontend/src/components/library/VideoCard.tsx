@@ -108,104 +108,92 @@ export const VideoCard: React.FC<VideoCardProps> = ({ video, onDelete, onRetry, 
     <div
       onClick={handleCardClick}
       className={clsx(
-        "group relative bg-surface border border-border-default hover:border-border-strong rounded-md p-3 transition-colors duration-fast cursor-pointer select-none space-y-2 text-xs",
+        "group relative bg-surface border border-border-default hover:border-border-strong hover:shadow-sm rounded-lg overflow-hidden transition-all duration-150 cursor-pointer select-none flex flex-col text-xs",
         video.status === "queued" && "cursor-not-allowed opacity-75"
       )}
     >
-      {/* Row 1: Title & Duration Chip */}
-      <div className="flex items-start justify-between gap-2" onClick={(e) => isEditingName && e.stopPropagation()}>
-        {isEditingName ? (
-          <div className="flex items-center gap-1 flex-1 py-0.5" onClick={(e) => e.stopPropagation()}>
-            <input
-              type="text"
-              value={nameInput}
-              onChange={(e) => setNameInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleSaveName();
-                if (e.key === "Escape") {
-                  setNameInput(video.original_filename);
-                  setIsEditingName(false);
-                }
-              }}
-              autoFocus
-              className="px-2 py-0.5 bg-surface-raised border border-accent rounded-sm text-xs text-txt-primary focus:outline-none w-full"
-            />
-            <button
-              type="button"
-              onClick={handleSaveName}
-              disabled={isSavingName || !nameInput.trim()}
-              className="p-1 rounded-sm text-success hover:bg-surface-raised cursor-pointer disabled:opacity-50"
-              title="Save name"
-            >
-              <Check className="w-3.5 h-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setNameInput(video.original_filename);
-                setIsEditingName(false);
-              }}
-              className="p-1 rounded-sm text-txt-secondary hover:bg-surface-raised cursor-pointer"
-              title="Cancel"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          </div>
+      {/* Thumbnail Container (16:9 Aspect Ratio) */}
+      <div className="relative w-full aspect-video bg-stone-900 overflow-hidden flex items-center justify-center group/thumb">
+        {video.thumbnail_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={video.thumbnail_url}
+            alt={video.original_filename}
+            loading="lazy"
+            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+            onError={(e) => {
+              (e.target as HTMLElement).style.display = "none";
+            }}
+          />
         ) : (
-          <div className="flex items-center gap-1.5 flex-1 min-w-0 group/name">
-            <div
-              className="font-medium text-txt-primary truncate group-hover:text-accent transition-colors"
-              title={video.original_filename}
-            >
-              {video.original_filename}
+          <Film className="w-8 h-8 text-stone-600" />
+        )}
+
+        {/* Hover Dark Overlay with Play Icon */}
+        {isSearchable && (
+          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+            <div className="w-10 h-10 rounded-full bg-white/95 text-stone-900 flex items-center justify-center shadow-lg transition-transform group-hover:scale-110">
+              <Play className="w-5 h-5 fill-current ml-0.5 text-stone-900" />
             </div>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setNameInput(video.original_filename);
-                setIsEditingName(true);
-              }}
-              className="opacity-0 group-hover/name:opacity-100 p-0.5 text-txt-tertiary hover:text-txt-primary rounded-sm transition-opacity cursor-pointer shrink-0"
-              title="Rename video"
-            >
-              <Pencil className="w-3 h-3" />
-            </button>
           </div>
         )}
 
-        {/* Duration Chip */}
-        <div className="px-1.5 py-0.5 rounded-sm bg-surface-raised border border-border-subtle text-txt-secondary font-mono text-[11px] flex items-center gap-1 flex-shrink-0">
-          <Film className="w-3 h-3 text-txt-tertiary" />
-          <span>{formatTimestamp(video.duration_seconds)}</span>
+        {/* Status Chip (Top Left) */}
+        <div className="absolute top-2 left-2 z-10 pointer-events-none">
+          <span
+            className={clsx(
+              "px-2 py-0.5 rounded-full text-[10px] font-medium flex items-center gap-1.5 shadow-xs backdrop-blur-md",
+              video.status === "completed" && "bg-emerald-950/85 text-emerald-200 border border-emerald-500/30",
+              video.status === "failed" && "bg-rose-950/85 text-rose-200 border border-rose-500/30",
+              (video.status === "processing" || video.status === "queued") && "bg-amber-950/85 text-amber-200 border border-amber-500/30"
+            )}
+          >
+            <span
+              className={clsx(
+                "w-1.5 h-1.5 rounded-full",
+                video.status === "completed" && "bg-emerald-400",
+                video.status === "failed" && "bg-rose-400",
+                (video.status === "processing" || video.status === "queued") && "bg-amber-400 animate-pulse"
+              )}
+            />
+            <span className="capitalize">{video.status === "completed" ? "Ready" : video.status}</span>
+          </span>
         </div>
 
-        {/* Overflow Menu Trigger */}
-        <div className="relative" onClick={(e) => e.stopPropagation()}>
+        {/* Duration Chip (Bottom Right) */}
+        {video.duration_seconds != null && video.duration_seconds > 0 && (
+          <div className="absolute bottom-2 right-2 z-10 px-1.5 py-0.5 rounded bg-black/80 backdrop-blur-xs text-white font-mono text-[10px] font-medium tracking-tight shadow-xs pointer-events-none">
+            {formatTimestamp(video.duration_seconds)}
+          </div>
+        )}
+
+        {/* 3-dots Menu Button (Top Right) */}
+        <div className="absolute top-2 right-2 z-20" onClick={(e) => e.stopPropagation()}>
           <button
+            type="button"
             onClick={() => setMenuOpen(!menuOpen)}
-            className="p-0.5 rounded-sm text-txt-tertiary hover:text-txt-primary hover:bg-hover cursor-pointer"
-            title="Actions"
+            className="w-7 h-7 rounded-full bg-black/60 hover:bg-black/85 text-white flex items-center justify-center backdrop-blur-xs transition-colors shadow-xs"
+            title="Video options"
           >
             <MoreVertical className="w-3.5 h-3.5" />
           </button>
 
           {menuOpen && (
             <div
-              className="absolute right-0 top-full mt-1 w-44 bg-float border border-border-default rounded-md shadow-float z-30 p-1 text-xs space-y-0.5"
+              className="absolute right-0 top-full mt-1 w-44 bg-surface border border-border-default rounded-md shadow-float z-30 p-1 text-xs space-y-0.5"
               onMouseLeave={() => setMenuOpen(false)}
             >
               <button
-                className="w-full text-left px-2 py-1.5 rounded-sm hover:bg-hover text-txt-primary flex items-center gap-2 cursor-pointer"
+                className="w-full text-left px-2 py-1.5 rounded-sm hover:bg-surface-raised text-txt-primary flex items-center gap-2 cursor-pointer"
                 onClick={() => {
                   setMenuOpen(false);
                   router.push(`/videos/${video.id}`);
                 }}
               >
-                <Play className="w-3.5 h-3.5 text-txt-tertiary" /> Open
+                <Play className="w-3.5 h-3.5 text-txt-tertiary" /> Open in player
               </button>
               <button
-                className="w-full text-left px-2 py-1.5 rounded-sm hover:bg-hover text-txt-primary flex items-center gap-2 cursor-pointer"
+                className="w-full text-left px-2 py-1.5 rounded-sm hover:bg-surface-raised text-txt-primary flex items-center gap-2 cursor-pointer"
                 onClick={() => {
                   setMenuOpen(false);
                   router.push(`/search?video=${video.id}`);
@@ -214,7 +202,7 @@ export const VideoCard: React.FC<VideoCardProps> = ({ video, onDelete, onRetry, 
                 <Search className="w-3.5 h-3.5 text-txt-tertiary" /> Search this video
               </button>
               <button
-                className="w-full text-left px-2 py-1.5 rounded-sm hover:bg-hover text-txt-primary flex items-center gap-2 cursor-pointer"
+                className="w-full text-left px-2 py-1.5 rounded-sm hover:bg-surface-raised text-txt-primary flex items-center gap-2 cursor-pointer"
                 onClick={() => {
                   setMenuOpen(false);
                   setNameInput(video.original_filename);
@@ -226,7 +214,7 @@ export const VideoCard: React.FC<VideoCardProps> = ({ video, onDelete, onRetry, 
               <a
                 href={downloadUrl}
                 download={video.original_filename}
-                className="w-full text-left px-2 py-1.5 rounded-sm hover:bg-hover text-txt-primary flex items-center gap-2"
+                className="w-full text-left px-2 py-1.5 rounded-sm hover:bg-surface-raised text-txt-primary flex items-center gap-2"
                 onClick={() => setMenuOpen(false)}
               >
                 <Download className="w-3.5 h-3.5 text-txt-tertiary" /> Download
@@ -244,61 +232,138 @@ export const VideoCard: React.FC<VideoCardProps> = ({ video, onDelete, onRetry, 
             </div>
           )}
         </div>
+
+        {/* Indexing Progress Bar */}
+        {isIndexing && (
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/40 z-10">
+            <div
+              className="h-full bg-accent transition-all duration-200"
+              style={{ width: `${video.progress_percent || 15}%` }}
+            />
+          </div>
+        )}
       </div>
 
-      {/* Row 2: Thumbnail & Status */}
-      <div className="flex items-center gap-3">
-        <FrameThumb
-          src={video.thumbnail_url}
-          alt={video.original_filename}
-          size="96x54"
-        />
-        <div className="min-w-0 flex-1">
-          <StatusIndicator
-            status={video.status}
-            progressPercent={video.progress_percent}
-            currentStep={video.current_step}
-            showSubline
-          />
+      {/* Card Body */}
+      <div className="p-3 flex flex-col flex-1 justify-between gap-2.5">
+        <div className="space-y-1">
+          {/* Filename with inline editing */}
+          <div className="flex items-center justify-between gap-1" onClick={(e) => isEditingName && e.stopPropagation()}>
+            {isEditingName ? (
+              <div className="flex items-center gap-1 flex-1 py-0.5" onClick={(e) => e.stopPropagation()}>
+                <input
+                  type="text"
+                  value={nameInput}
+                  onChange={(e) => setNameInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleSaveName();
+                    if (e.key === "Escape") {
+                      setNameInput(video.original_filename);
+                      setIsEditingName(false);
+                    }
+                  }}
+                  autoFocus
+                  className="px-2 py-0.5 bg-surface-raised border border-accent rounded-sm text-xs text-txt-primary focus:outline-none w-full"
+                />
+                <button
+                  type="button"
+                  onClick={handleSaveName}
+                  disabled={isSavingName || !nameInput.trim()}
+                  className="p-1 rounded-sm text-success hover:bg-surface-raised cursor-pointer disabled:opacity-50"
+                  title="Save name"
+                >
+                  <Check className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setNameInput(video.original_filename);
+                    setIsEditingName(false);
+                  }}
+                  className="p-1 rounded-sm text-txt-secondary hover:bg-surface-raised cursor-pointer"
+                  title="Cancel"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 flex-1 min-w-0 group/name">
+                <h3
+                  className="font-medium text-txt-primary truncate group-hover:text-accent transition-colors text-xs"
+                  title={video.original_filename}
+                >
+                  {video.original_filename}
+                </h3>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setNameInput(video.original_filename);
+                    setIsEditingName(true);
+                  }}
+                  className="opacity-0 group-hover/name:opacity-100 p-0.5 text-txt-tertiary hover:text-txt-primary rounded-sm transition-opacity cursor-pointer shrink-0"
+                  title="Rename video"
+                >
+                  <Pencil className="w-3 h-3" />
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Metadata Row: Date & Resolution */}
+          <div className="flex items-center gap-2 text-[11px] text-txt-tertiary">
+            <span>{formatDate(video.created_at)}</span>
+            {video.fps && <span>· {Math.round(video.fps)} fps</span>}
+            {video.width && video.height && <span>· {video.width}×{video.height}</span>}
+          </div>
         </div>
-      </div>
 
-      {/* Indexing Progress Line */}
-      {isIndexing && (
-        <div className="w-full h-1 bg-border-subtle rounded-xs overflow-hidden">
-          <div
-            className="h-full bg-processing transition-all duration-200"
-            style={{ width: `${video.progress_percent || 10}%` }}
-          />
-        </div>
-      )}
-
-      {/* Footer Row: Relative Date & Search Action */}
-      <div className="flex items-center justify-between pt-1 text-[11px] text-txt-tertiary">
-        <span>{formatDate(video.created_at)}</span>
-
-        {isSearchable && (
-          <Link
-            href={`/search?video=${video.id}`}
-            onClick={(e) => e.stopPropagation()}
-            className="inline-flex items-center gap-1 font-medium text-txt-primary hover:text-accent transition-colors"
-          >
-            <span>Search</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
+        {/* Failed Error Message (if failed) */}
+        {isFailed && video.error_message && (
+          <div className="p-2 rounded bg-rose-50 border border-rose-200 text-rose-700 text-[11px] leading-tight">
+            {video.error_message}
+          </div>
         )}
 
-        {isFailed && onRetry && (
+        {/* Footer Actions */}
+        <div className="flex items-center justify-between pt-1 border-t border-border-subtle text-[11px]">
+          {isSearchable && (
+            <Link
+              href={`/search?video=${video.id}`}
+              onClick={(e) => e.stopPropagation()}
+              className="inline-flex items-center gap-1 font-medium text-accent hover:underline transition-colors"
+            >
+              <Search className="w-3 h-3" />
+              <span>Search Video</span>
+            </Link>
+          )}
+
+          {isFailed && onRetry && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onRetry(video.id);
+              }}
+              className="inline-flex items-center gap-1 font-medium text-rose-600 hover:text-rose-700 hover:underline cursor-pointer"
+            >
+              <RotateCw className="w-3 h-3" />
+              <span>Retry Indexing</span>
+            </button>
+          )}
+
           <button
+            type="button"
             onClick={(e) => {
               e.stopPropagation();
-              onRetry(video.id);
+              router.push(`/videos/${video.id}`);
             }}
-            className="inline-flex items-center gap-1 font-medium text-danger-text hover:underline"
+            className="ml-auto inline-flex items-center gap-1 text-txt-secondary hover:text-txt-primary font-medium"
           >
-            <RotateCw className="w-3 h-3" /> Retry
+            <span>Open</span>
+            <ArrowRight className="w-3 h-3" />
           </button>
-        )}
+        </div>
       </div>
     </div>
   );
