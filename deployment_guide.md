@@ -42,8 +42,7 @@ If deploying as a standard Web Service:
 3. Under **Environment Variables**, add:
    | Key | Value | Notes |
    | :--- | :--- | :--- |
-   | `NEXT_PUBLIC_API_URL` | `https://your-render-app.onrender.com/api/v1` | Your live Render backend URL |
-   | `NEXT_PUBLIC_HEALTH_URL` | `https://your-render-app.onrender.com/health` | Backend health check |
+   | `BACKEND_URL` | `https://your-render-app.onrender.com` | Live Render backend URL (no public prefix needed) |
    | `NEXT_PUBLIC_SUPABASE_URL` | `https://rlyfxhdieguikjieucrc.supabase.co` | Supabase endpoint |
    | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | `sb_publishable_nExHPyQYfn3efstyw44iHw_jQcbJ-sz` | Supabase Anon Key |
 4. Click **Deploy**.

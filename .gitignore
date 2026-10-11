@@ -8,10 +8,11 @@
 # ------------------------------------------------------------------------------
 .env
 .env.*
-!.env.example
 *.env
 *.env.*
 *.local
+!.env.example
+!**/.env.example
 firebase_service_account*.json
 *service_account*.json
 service-account*.json

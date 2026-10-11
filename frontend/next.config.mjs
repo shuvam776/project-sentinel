@@ -15,8 +15,8 @@ const nextConfig = {
     ];
   },
   async rewrites() {
-    const rawApi = process.env.NEXT_PUBLIC_API_URL || process.env.BACKEND_URL || "http://127.0.0.1:8000/api/v1";
-    const backendRoot = rawApi.replace(/\/api\/v1\/?$/, "");
+    const rawApi = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+    const backendRoot = rawApi.replace(/\/api\/v1\/?$/, "").replace(/\/+$/, "");
     return [
       {
         source: "/api/v1/:path*",
