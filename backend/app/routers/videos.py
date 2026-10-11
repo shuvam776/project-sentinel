@@ -10,7 +10,14 @@ from app.database import get_db
 from app.models.video import Video
 from app.models.frame import Frame
 from app.models.detection import Detection
-from app.schemas.video import VideoResponse, VideoStatusResponse, VideoListResponse, VideoEventsResponse, EventSegmentResponse
+from app.schemas.video import (
+    VideoResponse,
+    VideoStatusResponse,
+    VideoListResponse,
+    VideoEventsResponse,
+    EventSegmentResponse,
+    VideoUpdateRequest,
+)
 from app.core.video_processor import VideoProcessor, VideoProcessorError
 from app.core.temporal_grouper import TemporalGrouper, FrameMatch
 from app.core.cloudinary_service import cloudinary_service
@@ -159,6 +166,29 @@ def get_video(
     video = db.query(Video).filter(Video.id == video_id).first()
     if not video:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Video not found")
+    return _to_video_response(video, request)
+
+
+@router.patch("/{video_id}", response_model=VideoResponse)
+@router.put("/{video_id}", response_model=VideoResponse)
+def update_video(
+    video_id: str,
+    update_data: VideoUpdateRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    """Updates video title / original_filename."""
+    video = db.query(Video).filter(Video.id == video_id).first()
+    if not video:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Video not found")
+
+    clean_name = update_data.original_filename.strip()
+    if not clean_name:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Video name cannot be empty")
+
+    video.original_filename = clean_name
+    db.commit()
+    db.refresh(video)
     return _to_video_response(video, request)
 
 

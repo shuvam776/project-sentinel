@@ -13,6 +13,9 @@ import {
   CheckCircle2,
   Info,
   Clock,
+  Pencil,
+  Check,
+  X,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { useRouter } from "next/navigation";
@@ -38,6 +41,7 @@ interface SidePanelProps {
   onSelectSegment?: (seg: SearchResultSegment) => void;
   selectedDetectionId?: string | null;
   onSelectDetection?: (det: Detection) => void;
+  onRenameVideo?: (newName: string) => Promise<void>;
   onDeleteVideo?: () => void;
   className?: string;
 }
@@ -57,6 +61,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({
   onSelectSegment,
   selectedDetectionId,
   onSelectDetection,
+  onRenameVideo,
   onDeleteVideo,
   className = "",
 }) => {
@@ -65,6 +70,30 @@ export const SidePanel: React.FC<SidePanelProps> = ({
   const [localSelectedClasses, setLocalSelectedClasses] = useState<string[]>([]);
   const [isGeneratingDownload, setIsGeneratingDownload] = useState(false);
   const [downloadingClass, setDownloadingClass] = useState<string | null>(null);
+
+  const [isInlineRenaming, setIsInlineRenaming] = useState(false);
+  const [inlineRenameName, setInlineRenameName] = useState(video.original_filename);
+  const [isSavingInlineRename, setIsSavingInlineRename] = useState(false);
+
+  useEffect(() => {
+    setInlineRenameName(video.original_filename);
+  }, [video.original_filename]);
+
+  const handleSaveInlineRename = async () => {
+    if (!inlineRenameName.trim() || inlineRenameName === video.original_filename) {
+      setIsInlineRenaming(false);
+      return;
+    }
+    if (onRenameVideo) {
+      setIsSavingInlineRename(true);
+      try {
+        await onRenameVideo(inlineRenameName.trim());
+        setIsInlineRenaming(false);
+      } finally {
+        setIsSavingInlineRename(false);
+      }
+    }
+  };
 
   // Sub-header controls
   const [detectionViewMode, setDetectionViewMode] = useState<"timestamps" | "current" | "all">("timestamps");
@@ -697,11 +726,72 @@ export const SidePanel: React.FC<SidePanelProps> = ({
                 </span>
               </div>
               <div className="space-y-1.5 pt-0.5">
-                <div className="flex justify-between">
-                  <span className="text-stone-500">Filename</span>
-                  <span className="font-medium text-stone-900 truncate max-w-[200px]" title={video.original_filename}>
-                    {video.original_filename}
-                  </span>
+                <div className="flex flex-col gap-1 py-0.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-stone-500">Filename</span>
+                    {!isInlineRenaming && onRenameVideo && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setInlineRenameName(video.original_filename);
+                          setIsInlineRenaming(true);
+                        }}
+                        className="text-stone-400 hover:text-stone-800 p-0.5 rounded transition-colors"
+                        title="Rename video"
+                      >
+                        <Pencil className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+                  {isInlineRenaming ? (
+                    <div className="flex items-center gap-1 mt-0.5">
+                      <input
+                        type="text"
+                        value={inlineRenameName}
+                        onChange={(e) => setInlineRenameName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            handleSaveInlineRename();
+                          } else if (e.key === "Escape") {
+                            setIsInlineRenaming(false);
+                            setInlineRenameName(video.original_filename);
+                          }
+                        }}
+                        autoFocus
+                        disabled={isSavingInlineRename}
+                        className="flex-1 h-7 px-2 text-xs bg-white border border-amber-400 rounded text-stone-900 focus:outline-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleSaveInlineRename}
+                        disabled={isSavingInlineRename || !inlineRenameName.trim()}
+                        className="h-7 w-7 flex items-center justify-center rounded bg-amber-600 hover:bg-amber-700 text-white disabled:opacity-50"
+                        title="Save name"
+                      >
+                        {isSavingInlineRename ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <Check className="w-3 h-3" />
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsInlineRenaming(false);
+                          setInlineRenameName(video.original_filename);
+                        }}
+                        className="h-7 w-7 flex items-center justify-center rounded bg-stone-200 hover:bg-stone-300 text-stone-700"
+                        title="Cancel"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ) : (
+                    <span className="font-medium text-stone-900 break-all text-left" title={video.original_filename}>
+                      {video.original_filename}
+                    </span>
+                  )}
                 </div>
                 <div className="flex justify-between font-mono">
                   <span className="text-stone-500">Duration</span>

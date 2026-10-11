@@ -162,6 +162,22 @@ export async function deleteVideo(id: string): Promise<void> {
   if (!res.ok && res.status !== 204) throw new Error("Failed to delete video");
 }
 
+export async function updateVideoName(id: string, original_filename: string): Promise<VideoItem> {
+  const res = await fetch(`${API_BASE}/videos/${id}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeaders(),
+    },
+    body: JSON.stringify({ original_filename }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: "Failed to update video name" }));
+    throw new Error(err.detail || "Failed to update video name");
+  }
+  return res.json();
+}
+
 export async function reprocessVideo(id: string): Promise<void> {
   const res = await fetch(`${API_BASE}/videos/${id}/reprocess`, {
     method: "POST",

@@ -1,25 +1,52 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { MoreVertical, Search, Trash2, RotateCw, Download, Play } from "lucide-react";
+import { MoreVertical, Search, Trash2, RotateCw, Download, Play, Pencil, Check, X } from "lucide-react";
 import { clsx } from "clsx";
 import { VideoItem } from "@/types";
 import FrameThumb from "@/components/data/FrameThumb";
 import StatusIndicator from "@/components/ui/StatusIndicator";
 import Button from "@/components/ui/Button";
 import { formatTimestamp, formatFileSize, formatDate } from "@/lib/format";
+import { updateVideoName } from "@/lib/api";
 
 interface VideoRowProps {
   video: VideoItem;
   onDelete: (id: string) => Promise<void>;
   onRetry?: (id: string) => Promise<void>;
+  onRename?: (id: string, newName: string) => Promise<void>;
 }
 
-export const VideoRow: React.FC<VideoRowProps> = ({ video, onDelete, onRetry }) => {
+export const VideoRow: React.FC<VideoRowProps> = ({ video, onDelete, onRetry, onRename }) => {
   const router = useRouter();
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDeleteConfirm, setIsDeleteConfirm] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [nameInput, setNameInput] = useState(video.original_filename);
+  const [isSavingName, setIsSavingName] = useState(false);
+
+  const handleSaveName = async () => {
+    const trimmed = nameInput.trim();
+    if (!trimmed || trimmed === video.original_filename) {
+      setNameInput(video.original_filename);
+      setIsEditingName(false);
+      return;
+    }
+    setIsSavingName(true);
+    try {
+      if (onRename) {
+        await onRename(video.id, trimmed);
+      } else {
+        await updateVideoName(video.id, trimmed);
+      }
+      setIsEditingName(false);
+    } catch (err) {
+      console.error("Failed to rename video:", err);
+    } finally {
+      setIsSavingName(false);
+    }
+  };
 
   const handleConfirmDelete = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -97,10 +124,66 @@ export const VideoRow: React.FC<VideoRowProps> = ({ video, onDelete, onRetry }) 
       </td>
 
       {/* Name & Sub-details */}
-      <td className="py-2 px-3 min-w-[200px]">
-        <div className="font-medium text-txt-primary truncate max-w-[320px] group-hover:text-accent transition-colors">
-          {video.original_filename}
-        </div>
+      <td className="py-2 px-3 min-w-[200px]" onClick={(e) => isEditingName && e.stopPropagation()}>
+        {isEditingName ? (
+          <div className="flex items-center gap-1.5 py-0.5" onClick={(e) => e.stopPropagation()}>
+            <input
+              type="text"
+              value={nameInput}
+              onChange={(e) => setNameInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleSaveName();
+                if (e.key === "Escape") {
+                  setNameInput(video.original_filename);
+                  setIsEditingName(false);
+                }
+              }}
+              autoFocus
+              className="px-2 py-0.5 bg-surface border border-accent rounded-sm text-xs text-txt-primary focus:outline-none w-full max-w-[280px]"
+            />
+            <button
+              type="button"
+              onClick={handleSaveName}
+              disabled={isSavingName || !nameInput.trim()}
+              className="p-1 rounded-sm text-success hover:bg-surface-raised cursor-pointer disabled:opacity-50"
+              title="Save name"
+            >
+              <Check className="w-3.5 h-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setNameInput(video.original_filename);
+                setIsEditingName(false);
+              }}
+              className="p-1 rounded-sm text-txt-secondary hover:bg-surface-raised cursor-pointer"
+              title="Cancel"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-1.5 group/name">
+            <div
+              className="font-medium text-txt-primary truncate max-w-[300px] group-hover:text-accent transition-colors"
+              title={video.original_filename}
+            >
+              {video.original_filename}
+            </div>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setNameInput(video.original_filename);
+                setIsEditingName(true);
+              }}
+              className="opacity-0 group-hover/name:opacity-100 p-1 text-txt-tertiary hover:text-txt-primary rounded-sm transition-opacity cursor-pointer"
+              title="Rename video"
+            >
+              <Pencil className="w-3 h-3" />
+            </button>
+          </div>
+        )}
         <div className="text-[11px] font-mono text-txt-tertiary">
           {video.width && video.height ? `${video.width}×${video.height}` : "—"}
           {video.fps ? ` · ${Math.round(video.fps)} fps` : ""}
@@ -170,7 +253,7 @@ export const VideoRow: React.FC<VideoRowProps> = ({ video, onDelete, onRetry }) 
                 onMouseLeave={() => setMenuOpen(false)}
               >
                 <button
-                  className="w-full text-left px-2 py-1.5 rounded-sm hover:bg-[#20262C] text-txt-primary flex items-center gap-2"
+                  className="w-full text-left px-2 py-1.5 rounded-sm hover:bg-hover text-txt-primary flex items-center gap-2 cursor-pointer"
                   onClick={() => {
                     setMenuOpen(false);
                     router.push(`/videos/${video.id}`);
@@ -179,7 +262,7 @@ export const VideoRow: React.FC<VideoRowProps> = ({ video, onDelete, onRetry }) 
                   <Play className="w-3.5 h-3.5 text-txt-tertiary" /> Open
                 </button>
                 <button
-                  className="w-full text-left px-2 py-1.5 rounded-sm hover:bg-[#20262C] text-txt-primary flex items-center gap-2"
+                  className="w-full text-left px-2 py-1.5 rounded-sm hover:bg-hover text-txt-primary flex items-center gap-2 cursor-pointer"
                   onClick={() => {
                     setMenuOpen(false);
                     router.push(`/search?video=${video.id}`);
@@ -187,9 +270,19 @@ export const VideoRow: React.FC<VideoRowProps> = ({ video, onDelete, onRetry }) 
                 >
                   <Search className="w-3.5 h-3.5 text-txt-tertiary" /> Search this video
                 </button>
+                <button
+                  className="w-full text-left px-2 py-1.5 rounded-sm hover:bg-hover text-txt-primary flex items-center gap-2 cursor-pointer"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    setNameInput(video.original_filename);
+                    setIsEditingName(true);
+                  }}
+                >
+                  <Pencil className="w-3.5 h-3.5 text-txt-tertiary" /> Rename...
+                </button>
                 {video.status === "failed" && onRetry && (
                   <button
-                    className="w-full text-left px-2 py-1.5 rounded-sm hover:bg-[#20262C] text-txt-primary flex items-center gap-2"
+                    className="w-full text-left px-2 py-1.5 rounded-sm hover:bg-hover text-txt-primary flex items-center gap-2 cursor-pointer"
                     onClick={() => {
                       setMenuOpen(false);
                       onRetry(video.id);

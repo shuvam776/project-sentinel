@@ -8,6 +8,10 @@ class VideoBase(BaseModel):
     mime_type: str = "video/mp4"
 
 
+class VideoUpdateRequest(BaseModel):
+    original_filename: str = Field(..., min_length=1, max_length=255, description="New video display filename")
+
+
 class VideoStatusResponse(BaseModel):
     id: str
     status: str

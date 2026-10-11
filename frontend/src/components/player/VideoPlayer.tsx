@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef, useState, useEffect, useCallback } from "react";
-import { Diamond, Loader2, Sun, Moon } from "lucide-react";
+import { Diamond, Loader2, Sun, Moon, RotateCcw, RotateCw } from "lucide-react";
 import { clsx } from "clsx";
 import DetectionOverlay from "./DetectionOverlay";
 import PlayerControls from "./PlayerControls";
@@ -228,6 +228,76 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     [currentTime, duration, handleSeek]
   );
 
+  // Hold-and-move video scrub state (ahead / behind)
+  const [isArenaScrubbing, setIsArenaScrubbing] = useState(false);
+  const [arenaScrubDelta, setArenaScrubDelta] = useState(0);
+  const [arenaScrubTargetTime, setArenaScrubTargetTime] = useState(0);
+  const arenaDragRef = useRef<{
+    startX: number;
+    startTime: number;
+    isDragging: boolean;
+  } | null>(null);
+
+  const handleArenaMouseDown = useCallback((e: React.MouseEvent) => {
+    if (e.button !== 0) return;
+    const target = e.target as HTMLElement;
+    if (target.closest("button") || target.closest("[data-no-scrub]")) return;
+
+    arenaDragRef.current = {
+      startX: e.clientX,
+      startTime: currentTime,
+      isDragging: false,
+    };
+  }, [currentTime]);
+
+  useEffect(() => {
+    const handleWindowMouseMove = (e: MouseEvent) => {
+      if (!arenaDragRef.current) return;
+      const dx = e.clientX - arenaDragRef.current.startX;
+      if (!arenaDragRef.current.isDragging && Math.abs(dx) > 6) {
+        arenaDragRef.current.isDragging = true;
+        setIsArenaScrubbing(true);
+      }
+
+      if (arenaDragRef.current.isDragging) {
+        // Map 14px horizontal motion to 1s scrub
+        const scrubSecs = dx / 14;
+        const target = Math.max(0, Math.min(duration, arenaDragRef.current.startTime + scrubSecs));
+        setArenaScrubDelta(scrubSecs);
+        setArenaScrubTargetTime(target);
+        if (videoRef.current) {
+          videoRef.current.currentTime = target;
+          setCurrentTime(target);
+        }
+      }
+    };
+
+    const handleWindowMouseUp = () => {
+      if (!arenaDragRef.current) return;
+      if (arenaDragRef.current.isDragging) {
+        const target = arenaScrubTargetTime;
+        handleSeek(target);
+      }
+      arenaDragRef.current = null;
+      setIsArenaScrubbing(false);
+      setArenaScrubDelta(0);
+    };
+
+    window.addEventListener("mousemove", handleWindowMouseMove);
+    window.addEventListener("mouseup", handleWindowMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", handleWindowMouseMove);
+      window.removeEventListener("mouseup", handleWindowMouseUp);
+    };
+  }, [duration, arenaScrubTargetTime, handleSeek]);
+
+  const handleVideoClick = useCallback((e: React.MouseEvent) => {
+    if (isArenaScrubbing || (arenaDragRef.current && arenaDragRef.current.isDragging)) {
+      return;
+    }
+    handleTogglePlay();
+  }, [isArenaScrubbing, handleTogglePlay]);
+
   const handleCaptureSnapshot = useCallback(() => {
     if (!videoRef.current) return;
     try {
@@ -342,6 +412,22 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           e.preventDefault();
           setShowShortcutsModal(true);
           break;
+        case "<":
+          e.preventDefault();
+          setPlaybackSpeed((prev) => {
+            const next = Math.max(0.25, Math.round((prev - 0.25) * 100) / 100);
+            if (videoRef.current) videoRef.current.playbackRate = next;
+            return next;
+          });
+          break;
+        case ">":
+          e.preventDefault();
+          setPlaybackSpeed((prev) => {
+            const next = Math.min(2.0, Math.round((prev + 0.25) * 100) / 100);
+            if (videoRef.current) videoRef.current.playbackRate = next;
+            return next;
+          });
+          break;
         case "Escape":
           setShowShortcutsModal(false);
           break;
@@ -454,17 +540,22 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
         <div
           className={clsx(
-            "relative max-w-full max-h-full flex items-center justify-center transition-colors",
+            "relative max-w-full max-h-full flex items-center justify-center transition-colors select-none",
+            isArenaScrubbing && "cursor-ew-resize",
             playerTheme === "dark" ? "bg-black" : "rounded-md overflow-hidden bg-stone-950 shadow-sm border border-stone-200"
           )}
           style={{ aspectRatio }}
+          onMouseDown={handleArenaMouseDown}
         >
           <video
             ref={videoRef}
             src={streamUrl}
             loop={isLooping}
-            className="w-full h-full object-contain cursor-pointer"
-            onClick={handleTogglePlay}
+            className={clsx(
+              "w-full h-full object-contain select-none",
+              isArenaScrubbing ? "cursor-ew-resize" : "cursor-pointer"
+            )}
+            onClick={handleVideoClick}
             onTimeUpdate={() => {
               if (videoRef.current) {
                 const t = videoRef.current.currentTime;
@@ -489,6 +580,38 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
             onWaiting={() => setIsBuffering(true)}
             onPlaying={() => setIsBuffering(false)}
           />
+
+          {/* Tactical Hold-to-Scrub Floating HUD */}
+          {isArenaScrubbing && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30 select-none animate-in fade-in duration-100">
+              <div className="px-5 py-3.5 rounded-lg bg-stone-900/90 backdrop-blur-md border border-stone-700/80 text-white shadow-2xl flex flex-col items-center gap-2">
+                <div className="flex items-center gap-3">
+                  {arenaScrubDelta < 0 ? (
+                    <RotateCcw className="w-5 h-5 text-amber-400" />
+                  ) : (
+                    <RotateCw className="w-5 h-5 text-amber-400" />
+                  )}
+                  <span className="font-mono text-2xl font-bold tracking-tight">
+                    {arenaScrubDelta > 0 ? `+${arenaScrubDelta.toFixed(1)}s` : `${arenaScrubDelta.toFixed(1)}s`}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 font-mono text-xs text-stone-300">
+                  <span className="text-white font-semibold text-sm">{formatTimestamp(arenaScrubTargetTime, true)}</span>
+                  <span className="text-stone-500">/</span>
+                  <span>{formatTimestamp(duration)}</span>
+                </div>
+                <div className="w-44 h-1.5 bg-stone-800 rounded-full overflow-hidden mt-0.5">
+                  <div
+                    className="h-full bg-amber-400 transition-[width] duration-75"
+                    style={{ width: `${Math.max(0, Math.min(100, (arenaScrubTargetTime / (duration || 1)) * 100))}%` }}
+                  />
+                </div>
+                <div className="text-[10px] text-stone-400 uppercase tracking-wider font-semibold">
+                  Hold & drag to scrub
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Buffering Indicator */}
           {isBuffering && (

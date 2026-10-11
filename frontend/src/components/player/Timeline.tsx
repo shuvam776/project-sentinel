@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState,useCallback,useEffect } from "react";
 import { Diamond, Square } from "lucide-react";
 import { SearchResultSegment, Detection } from "@/types";
 import { formatTimestamp } from "@/lib/format";
@@ -31,25 +31,56 @@ export const Timeline: React.FC<TimelineProps> = ({
   const trackRef = useRef<HTMLDivElement>(null);
   const [hoverTime, setHoverTime] = useState<number | null>(null);
   const [hoverX, setHoverX] = useState<number>(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragTime, setDragTime] = useState<number | null>(null);
 
   const safeDuration = duration > 0 ? duration : 1;
-  const playheadPercent = (currentTime / safeDuration) * 100;
+  const effectiveTime = isDragging && dragTime !== null ? dragTime : currentTime;
+  const playheadPercent = (effectiveTime / safeDuration) * 100;
 
-  const calculateTimeFromEvent = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!trackRef.current || safeDuration <= 0) return 0;
-    const rect = trackRef.current.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
-    const fraction = Math.max(0, Math.min(1, clickX / rect.width));
-    return fraction * safeDuration;
-  };
+  const calculateTimeFromClientX = useCallback(
+    (clientX: number) => {
+      if (!trackRef.current || safeDuration <= 0) return 0;
+      const rect = trackRef.current.getBoundingClientRect();
+      const clickX = clientX - rect.left;
+      const fraction = Math.max(0, Math.min(1, clickX / rect.width));
+      return fraction * safeDuration;
+    },
+    [safeDuration]
+  );
 
-  const handleTrackClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    const time = calculateTimeFromEvent(e);
+  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(true);
+    const time = calculateTimeFromClientX(e.clientX);
+    setDragTime(time);
     onSeek(time);
   };
 
+  useEffect(() => {
+    if (!isDragging) return;
+
+    const handleWindowMouseMove = (e: MouseEvent) => {
+      const time = calculateTimeFromClientX(e.clientX);
+      setDragTime(time);
+      onSeek(time);
+    };
+
+    const handleWindowMouseUp = () => {
+      setIsDragging(false);
+      setDragTime(null);
+    };
+
+    window.addEventListener("mousemove", handleWindowMouseMove);
+    window.addEventListener("mouseup", handleWindowMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", handleWindowMouseMove);
+      window.removeEventListener("mouseup", handleWindowMouseUp);
+    };
+  }, [isDragging, calculateTimeFromClientX, onSeek]);
+
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!trackRef.current) return;
+    if (!trackRef.current || isDragging) return;
     const rect = trackRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const fraction = Math.max(0, Math.min(1, x / rect.width));
@@ -58,7 +89,7 @@ export const Timeline: React.FC<TimelineProps> = ({
   };
 
   const handleMouseLeave = () => {
-    setHoverTime(null);
+    if (!isDragging) setHoverTime(null);
   };
 
   // Generate nice ruler interval marks
@@ -69,13 +100,25 @@ export const Timeline: React.FC<TimelineProps> = ({
   return (
     <div
       ref={trackRef}
-      onClick={handleTrackClick}
+      onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
-      className={`h-[88px] bg-surface border-t border-border-subtle p-2 px-4 flex flex-col justify-between select-none relative cursor-pointer group ${className}`}
+      className={`h-[88px] bg-surface border-t border-border-subtle p-2 px-4 flex flex-col justify-between select-none relative ${
+        isDragging ? "cursor-grabbing" : "cursor-pointer"
+      } group ${className}`}
     >
+      {/* Live Dragging Scrub Banner */}
+      {isDragging && (
+        <div
+          style={{ left: `${Math.max(4, Math.min(96, playheadPercent))}%` }}
+          className="absolute -top-7 -translate-x-1/2 px-2.5 py-1 rounded-sm bg-accent text-white font-mono text-[11px] font-bold pointer-events-none z-40 shadow-md whitespace-nowrap flex items-center gap-1.5"
+        >
+          <span>{formatTimestamp(effectiveTime, true)}</span>
+        </div>
+      )}
+
       {/* Hover timestamp tooltip */}
-      {hoverTime !== null && (
+      {!isDragging && hoverTime !== null && (
         <div
           style={{ left: `${hoverX}px` }}
           className="absolute -top-6 -translate-x-1/2 px-1.5 py-0.5 rounded-xs bg-chrome text-txt-primary border border-border-strong font-mono text-[10px] pointer-events-none z-30 shadow-xs whitespace-nowrap"
@@ -179,7 +222,11 @@ export const Timeline: React.FC<TimelineProps> = ({
           style={{ left: `${playheadPercent}%` }}
           className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 flex flex-col items-center pointer-events-none z-20 transition-[left] duration-75"
         >
-          <div className="w-2.5 h-2.5 rounded-xs bg-txt-primary shadow-sm" />
+          <div
+            className={`rounded-xs shadow-sm transition-all ${
+              isDragging ? "w-3.5 h-3.5 bg-accent ring-2 ring-white scale-125" : "w-2.5 h-2.5 bg-txt-primary"
+            }`}
+          />
           <div className="w-[1px] h-16 bg-txt-primary/60 -mt-0.5" />
         </div>
       </div>

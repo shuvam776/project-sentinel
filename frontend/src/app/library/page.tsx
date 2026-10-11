@@ -9,7 +9,7 @@ import VideoRow from "@/components/library/VideoRow";
 import VideoCard from "@/components/library/VideoCard";
 import UploadDropzone from "@/components/library/UploadDropzone";
 import StatusIndicator from "@/components/ui/StatusIndicator";
-import { fetchVideos, uploadVideo, deleteVideo, reprocessVideo } from "@/lib/api";
+import { fetchVideos, uploadVideo, deleteVideo, reprocessVideo, updateVideoName } from "@/lib/api";
 import { VideoItem } from "@/types";
 import { clsx } from "clsx";
 import { useAuth } from "@/context/AuthContext";
@@ -117,6 +117,17 @@ export default function LibraryPage() {
   const handleRetry = async (id: string) => {
     await reprocessVideo(id);
     await loadVideos();
+  };
+
+  const handleRename = async (id: string, newName: string) => {
+    try {
+      await updateVideoName(id, newName);
+      setVideos((prev) =>
+        prev.map((v) => (v.id === id ? { ...v, original_filename: newName } : v))
+      );
+    } catch (err) {
+      console.error("Failed to rename video:", err);
+    }
   };
 
   // Filter & Sort Logic
@@ -356,6 +367,7 @@ export default function LibraryPage() {
                         video={video}
                         onDelete={handleDelete}
                         onRetry={handleRetry}
+                        onRename={handleRename}
                       />
                     ))}
                   </tbody>
@@ -408,7 +420,7 @@ export default function LibraryPage() {
                     ))}
 
                     {uploadingVideos.map((video) => (
-                      <VideoCard key={video.id} video={video} onDelete={handleDelete} onRetry={handleRetry} />
+                      <VideoCard key={video.id} video={video} onDelete={handleDelete} onRetry={handleRetry} onRename={handleRename} />
                     ))}
 
                     {uploadingFiles.length === 0 && uploadingVideos.length === 0 && (
@@ -436,7 +448,7 @@ export default function LibraryPage() {
 
                   <div className="space-y-3">
                     {indexingVideos.map((video) => (
-                      <VideoCard key={video.id} video={video} onDelete={handleDelete} onRetry={handleRetry} />
+                      <VideoCard key={video.id} video={video} onDelete={handleDelete} onRetry={handleRetry} onRename={handleRename} />
                     ))}
 
                     {indexingVideos.length === 0 && (
@@ -464,7 +476,7 @@ export default function LibraryPage() {
 
                   <div className="space-y-3">
                     {readyVideos.map((video) => (
-                      <VideoCard key={video.id} video={video} onDelete={handleDelete} onRetry={handleRetry} />
+                      <VideoCard key={video.id} video={video} onDelete={handleDelete} onRetry={handleRetry} onRename={handleRename} />
                     ))}
 
                     {readyVideos.length === 0 && (
@@ -492,7 +504,7 @@ export default function LibraryPage() {
 
                   <div className="space-y-3">
                     {needsAttentionVideos.map((video) => (
-                      <VideoCard key={video.id} video={video} onDelete={handleDelete} onRetry={handleRetry} />
+                      <VideoCard key={video.id} video={video} onDelete={handleDelete} onRetry={handleRetry} onRename={handleRename} />
                     ))}
 
                     {needsAttentionVideos.length === 0 && (

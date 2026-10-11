@@ -2,14 +2,14 @@
 
 import React, { useEffect, useState, useCallback, Suspense, useRef } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
-import { Search, MoreVertical, Download, Square, Trash2, Keyboard } from "lucide-react";
+import { Search, MoreVertical, Download, Square, Trash2, Keyboard, Pencil, Check, X, Loader2 } from "lucide-react";
 import AppShell from "@/components/shell/AppShell";
 import Header from "@/components/shell/Header";
 import VideoPlayer from "@/components/player/VideoPlayer";
 import SidePanel from "@/components/player/SidePanel";
 import InlineAlert from "@/components/ui/InlineAlert";
 import KeyboardShortcutsModal from "@/components/player/KeyboardShortcutsModal";
-import { fetchVideo, fetchDetections, searchVideo, deleteVideo, getVideoDownloadUrl, getClipDownloadUrl } from "@/lib/api";
+import { fetchVideo, fetchDetections, searchVideo, deleteVideo, getVideoDownloadUrl, getClipDownloadUrl, updateVideoName } from "@/lib/api";
 import { VideoItem, SearchResultSegment, Detection } from "@/types";
 
 function VideoDetailContent() {
@@ -34,6 +34,9 @@ function VideoDetailContent() {
   const [error, setError] = useState<string | null>(null);
   const [headerMenuOpen, setHeaderMenuOpen] = useState(false);
   const [shortcutsModalOpen, setShortcutsModalOpen] = useState(false);
+  const [renameModalOpen, setRenameModalOpen] = useState(false);
+  const [renameInput, setRenameInput] = useState("");
+  const [isSavingRename, setIsSavingRename] = useState(false);
   const headerMenuRef = useRef<HTMLDivElement>(null);
 
   // Close overflow menu on outside click
@@ -84,6 +87,29 @@ function VideoDetailContent() {
     if (confirm(`Delete "${video.original_filename}"? This will remove all search and detection data and cannot be undone.`)) {
       await deleteVideo(video.id);
       router.push("/library");
+    }
+  };
+
+  const handleStartRename = () => {
+    if (video) {
+      setRenameInput(video.original_filename);
+      setRenameModalOpen(true);
+      setHeaderMenuOpen(false);
+    }
+  };
+
+  const handleRenameVideo = async (newName: string) => {
+    if (!video || !newName.trim()) return;
+    setIsSavingRename(true);
+    try {
+      const updated = await updateVideoName(video.id, newName.trim());
+      setVideo(updated);
+      setRenameModalOpen(false);
+    } catch (e) {
+      console.error("Failed to rename video", e);
+      alert("Failed to rename video. Please try again.");
+    } finally {
+      setIsSavingRename(false);
     }
   };
 
@@ -222,6 +248,14 @@ function VideoDetailContent() {
               <span>Keyboard shortcuts</span>
             </button>
 
+            <button
+              onClick={handleStartRename}
+              className="w-full text-left px-2.5 py-1.5 rounded-sm text-txt-primary hover:bg-surface-raised flex items-center gap-2"
+            >
+              <Pencil className="w-3.5 h-3.5 text-txt-tertiary" />
+              <span>Rename video…</span>
+            </button>
+
             <div className="h-px bg-border-subtle my-1" />
 
             <button
@@ -291,11 +325,84 @@ function VideoDetailContent() {
                 const vidElem = document.querySelector("video");
                 if (vidElem) vidElem.currentTime = time;
               }}
+              onRenameVideo={handleRenameVideo}
               onDeleteVideo={handleDeleteVideo}
             />
           </>
         )}
       </div>
+
+      {/* Rename Video Modal */}
+      {renameModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in duration-100">
+          <div className="w-full max-w-md bg-surface border border-border-default rounded-md shadow-xl p-5 space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-border-subtle">
+              <h3 className="text-sm font-semibold text-txt-primary flex items-center gap-2">
+                <Pencil className="w-4 h-4 text-accent" />
+                Rename Video
+              </h3>
+              <button
+                type="button"
+                onClick={() => setRenameModalOpen(false)}
+                className="text-txt-tertiary hover:text-txt-primary p-1 rounded hover:bg-surface-raised"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs text-txt-secondary font-medium">New Video Name</label>
+              <input
+                type="text"
+                value={renameInput}
+                onChange={(e) => setRenameInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleRenameVideo(renameInput);
+                  } else if (e.key === "Escape") {
+                    setRenameModalOpen(false);
+                  }
+                }}
+                autoFocus
+                placeholder="Enter filename..."
+                className="w-full h-9 px-3 text-xs bg-surface-raised border border-border-default rounded text-txt-primary focus:outline-none focus:border-accent"
+              />
+              <p className="text-[11px] text-txt-tertiary">
+                Press Enter to save, or Escape to cancel.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setRenameModalOpen(false)}
+                className="h-8 px-3 text-xs rounded text-txt-secondary hover:text-txt-primary hover:bg-surface-raised border border-border-subtle"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => handleRenameVideo(renameInput)}
+                disabled={isSavingRename || !renameInput.trim()}
+                className="h-8 px-3.5 text-xs rounded bg-accent text-white font-medium hover:bg-accent/90 disabled:opacity-50 flex items-center gap-1.5"
+              >
+                {isSavingRename ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Check className="w-3.5 h-3.5" />
+                    Save Name
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <KeyboardShortcutsModal
         isOpen={shortcutsModalOpen}
