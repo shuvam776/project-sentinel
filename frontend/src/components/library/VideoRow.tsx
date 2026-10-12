@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { MoreVertical, Search, Trash2, RotateCw, Download, Play, Pencil, Check, X } from "lucide-react";
@@ -12,19 +12,56 @@ import { updateVideoName, getVideoDownloadUrl } from "@/lib/api";
 
 interface VideoRowProps {
   video: VideoItem;
+  isLastRow?: boolean;
   onDelete: (id: string) => Promise<void>;
   onRetry?: (id: string) => Promise<void>;
   onRename?: (id: string, newName: string) => Promise<void>;
 }
 
-export const VideoRow: React.FC<VideoRowProps> = ({ video, onDelete, onRetry, onRename }) => {
+export const VideoRow: React.FC<VideoRowProps> = ({ video, isLastRow = false, onDelete, onRetry, onRename }) => {
   const router = useRouter();
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDeleteConfirm, setIsDeleteConfirm] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [openUpwards, setOpenUpwards] = useState(isLastRow);
   const [isEditingName, setIsEditingName] = useState(false);
   const [nameInput, setNameInput] = useState(video.original_filename);
   const [isSavingName, setIsSavingName] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        menuRef.current &&
+        !menuRef.current.contains(e.target as Node) &&
+        buttonRef.current &&
+        !buttonRef.current.contains(e.target as Node)
+      ) {
+        setMenuOpen(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMenuOpen(false);
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [menuOpen]);
+
+  const toggleMenu = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!menuOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      setOpenUpwards(isLastRow || spaceBelow < 250);
+    }
+    setMenuOpen((prev) => !prev);
+  };
 
   const handleSaveName = async () => {
     const trimmed = nameInput.trim();
@@ -240,66 +277,100 @@ export const VideoRow: React.FC<VideoRowProps> = ({ video, onDelete, onRetry, on
           {/* Action Overflow Menu */}
           <div className="relative">
             <button
-              onClick={() => setMenuOpen(!menuOpen)}
-              className="p-1.5 rounded-sm text-txt-secondary hover:text-txt-primary hover:bg-surface transition-colors"
-              title="Actions menu"
+              ref={buttonRef}
+              onClick={toggleMenu}
+              className={clsx(
+                "p-1.5 rounded-sm transition-colors",
+                menuOpen
+                  ? "bg-stone-100 dark:bg-stone-800 text-txt-primary"
+                  : "text-txt-secondary hover:text-txt-primary hover:bg-surface"
+              )}
+              title="More options"
+              aria-label="More options"
+              aria-expanded={menuOpen}
             >
               <MoreVertical className="w-3.5 h-3.5" />
             </button>
 
             {menuOpen && (
               <div
-                className="absolute right-0 top-full mt-1 w-44 bg-surface-raised border border-border-default rounded-md shadow-float z-30 p-1 text-xs space-y-0.5"
-                onMouseLeave={() => setMenuOpen(false)}
+                ref={menuRef}
+                className={clsx(
+                  "absolute right-0 w-48 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-md shadow-float z-50 p-1 text-xs space-y-0.5 animate-in fade-in zoom-in-95 duration-100 text-left",
+                  openUpwards ? "bottom-full mb-1.5" : "top-full mt-1.5"
+                )}
+                onClick={(e) => e.stopPropagation()}
               >
                 <button
-                  className="w-full text-left px-2 py-1.5 rounded-sm hover:bg-hover text-txt-primary flex items-center gap-2 cursor-pointer"
+                  className="w-full text-left px-2.5 py-1.5 rounded-sm hover:bg-stone-100/80 dark:hover:bg-stone-800 text-stone-900 dark:text-stone-100 flex items-center gap-2 cursor-pointer transition-colors"
                   onClick={() => {
                     setMenuOpen(false);
                     router.push(`/videos/${video.id}`);
                   }}
                 >
-                  <Play className="w-3.5 h-3.5 text-txt-tertiary" /> Open
+                  <Play className="w-3.5 h-3.5 text-stone-500 shrink-0" />
+                  <span>Open in player</span>
                 </button>
-                <button
-                  className="w-full text-left px-2 py-1.5 rounded-sm hover:bg-hover text-txt-primary flex items-center gap-2 cursor-pointer"
-                  onClick={() => {
-                    setMenuOpen(false);
-                    router.push(`/search?video=${video.id}`);
-                  }}
+
+                {isPlayable && (
+                  <button
+                    className="w-full text-left px-2.5 py-1.5 rounded-sm hover:bg-stone-100/80 dark:hover:bg-stone-800 text-stone-900 dark:text-stone-100 flex items-center gap-2 cursor-pointer transition-colors"
+                    onClick={() => {
+                      setMenuOpen(false);
+                      router.push(`/search?video=${video.id}`);
+                    }}
+                  >
+                    <Search className="w-3.5 h-3.5 text-stone-500 shrink-0" />
+                    <span>Search this video</span>
+                  </button>
+                )}
+
+                <a
+                  href={downloadUrl}
+                  download={video.original_filename}
+                  className="w-full text-left px-2.5 py-1.5 rounded-sm hover:bg-stone-100/80 dark:hover:bg-stone-800 text-stone-900 dark:text-stone-100 flex items-center gap-2 cursor-pointer transition-colors"
+                  onClick={() => setMenuOpen(false)}
                 >
-                  <Search className="w-3.5 h-3.5 text-txt-tertiary" /> Search this video
-                </button>
+                  <Download className="w-3.5 h-3.5 text-stone-500 shrink-0" />
+                  <span>Download video</span>
+                </a>
+
                 <button
-                  className="w-full text-left px-2 py-1.5 rounded-sm hover:bg-hover text-txt-primary flex items-center gap-2 cursor-pointer"
+                  className="w-full text-left px-2.5 py-1.5 rounded-sm hover:bg-stone-100/80 dark:hover:bg-stone-800 text-stone-900 dark:text-stone-100 flex items-center gap-2 cursor-pointer transition-colors"
                   onClick={() => {
                     setMenuOpen(false);
                     setNameInput(video.original_filename);
                     setIsEditingName(true);
                   }}
                 >
-                  <Pencil className="w-3.5 h-3.5 text-txt-tertiary" /> Rename...
+                  <Pencil className="w-3.5 h-3.5 text-stone-500 shrink-0" />
+                  <span>Rename...</span>
                 </button>
+
                 {video.status === "failed" && onRetry && (
                   <button
-                    className="w-full text-left px-2 py-1.5 rounded-sm hover:bg-hover text-txt-primary flex items-center gap-2 cursor-pointer"
+                    className="w-full text-left px-2.5 py-1.5 rounded-sm bg-amber-50 hover:bg-amber-100/80 text-amber-900 font-medium border border-amber-200/60 flex items-center gap-2 cursor-pointer transition-colors"
                     onClick={() => {
                       setMenuOpen(false);
                       onRetry(video.id);
                     }}
                   >
-                    <RotateCw className="w-3.5 h-3.5 text-txt-tertiary" /> Retry indexing
+                    <RotateCw className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                    <span>Retry indexing</span>
                   </button>
                 )}
-                <div className="h-[1px] bg-border-subtle my-1" />
+
+                <div className="h-[1px] bg-stone-100 dark:bg-stone-800 my-1" />
+
                 <button
-                  className="w-full text-left px-2 py-1.5 rounded-sm hover:bg-danger-subtle text-danger-text flex items-center gap-2"
+                  className="w-full text-left px-2.5 py-1.5 rounded-sm hover:bg-rose-50 text-rose-700 font-medium flex items-center gap-2 cursor-pointer transition-colors"
                   onClick={() => {
                     setMenuOpen(false);
                     setIsDeleteConfirm(true);
                   }}
                 >
-                  <Trash2 className="w-3.5 h-3.5 text-danger" /> Delete...
+                  <Trash2 className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                  <span>Delete video...</span>
                 </button>
               </div>
             )}

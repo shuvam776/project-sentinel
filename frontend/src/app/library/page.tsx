@@ -328,17 +328,17 @@ export default function LibraryPage() {
 
             {/* LIST VIEW */}
             {viewMode === "list" && (
-              <div className="rounded-md border border-border-default bg-surface overflow-hidden">
+              <div className="rounded-md border border-border-default bg-surface">
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="h-8 border-b border-border-default bg-surface text-[11px] font-semibold tracking-wider text-txt-tertiary uppercase select-none">
-                      <th className="px-3 font-semibold">Thumbnail</th>
+                      <th className="px-3 font-semibold rounded-tl-md">Thumbnail</th>
                       <th className="px-3 font-semibold">Name</th>
                       <th className="px-3 font-semibold">Status</th>
                       <th className="px-3 font-semibold text-right">Duration</th>
                       <th className="px-3 font-semibold text-right hidden xl:table-cell">Size</th>
                       <th className="px-3 font-semibold text-right hidden lg:table-cell">Uploaded</th>
-                      <th className="px-3 font-semibold text-right">Actions</th>
+                      <th className="px-3 font-semibold text-right rounded-tr-md">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -371,10 +371,11 @@ export default function LibraryPage() {
                     ))}
 
                     {/* Video Rows */}
-                    {filteredVideos.map((video) => (
+                    {filteredVideos.map((video, idx) => (
                       <VideoRow
                         key={video.id}
                         video={video}
+                        isLastRow={idx >= Math.max(0, filteredVideos.length - 2)}
                         onDelete={handleDelete}
                         onRetry={handleRetry}
                         onRename={handleRename}
