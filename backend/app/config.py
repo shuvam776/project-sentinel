@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     FRAMES_DIR: Path = DATA_DIR / "frames"
     CLIPS_DIR: Path = DATA_DIR / "clips"
     THUMBNAILS_DIR: Path = DATA_DIR / "thumbnails"
+    DEMO_DIR: Path = DATA_DIR / "demo"
 
     # Database
     DATABASE_URL: str = f"sqlite:///{(DATA_DIR / 'sentinel.db').as_posix()}"
@@ -55,7 +56,7 @@ class Settings(BaseSettings):
 
     def ensure_directories(self) -> None:
         """Create necessary directories if they do not exist."""
-        for directory in [self.DATA_DIR, self.UPLOAD_DIR, self.FRAMES_DIR, self.CLIPS_DIR, self.THUMBNAILS_DIR]:
+        for directory in [self.DATA_DIR, self.UPLOAD_DIR, self.FRAMES_DIR, self.CLIPS_DIR, self.THUMBNAILS_DIR, self.DEMO_DIR]:
             directory.mkdir(parents=True, exist_ok=True)
 
     model_config = SettingsConfigDict(

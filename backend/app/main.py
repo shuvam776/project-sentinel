@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from sqlalchemy import text
 from app.database import engine, Base
-from app.routers import videos, search, clips
+from app.routers import videos, search, clips, demo
 import torch
 
 # Configure logging
@@ -77,6 +77,7 @@ app.add_middleware(
 app.include_router(videos.router, prefix=settings.API_V1_STR)
 app.include_router(search.router, prefix=settings.API_V1_STR)
 app.include_router(clips.router, prefix=settings.API_V1_STR)
+app.include_router(demo.router, prefix=settings.API_V1_STR)
 
 
 @app.get("/health", tags=["Health"])

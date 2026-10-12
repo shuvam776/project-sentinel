@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import { AuthProvider } from "@/context/AuthContext";
+import { Toaster } from "react-hot-toast";
 import "./globals.css";
 
 const geistSans = Inter({
@@ -27,23 +28,19 @@ export const metadata: Metadata = {
     process.env.APP_URL || "https://sentinel-video-ai.vercel.app"
   ),
   title: {
-    default: "Sentinel — Multimodal Video Search & Intelligence",
+    default: "Sentinel — Video Search & Object Detection",
     template: "%s | Sentinel",
   },
   description:
-    "Search your video footage like you'd ask a person. Frame-level precision with zero hallucinations using multimodal CLIP embeddings and neural object detections.",
+    "Search your video footage in natural language with frame-level retrieval and object detection.",
   applicationName: "Sentinel",
-  authors: [{ name: "Sentinel AI Team" }],
+  authors: [{ name: "Sentinel" }],
   keywords: [
     "video search",
-    "multimodal AI",
-    "Twelve Labs",
     "CLIP embeddings",
     "computer vision",
     "object detection",
-    "YOLO",
     "frame retrieval",
-    "video intelligence",
     "semantic search",
   ],
   icons: {
@@ -60,23 +57,23 @@ export const metadata: Metadata = {
     locale: "en_US",
     url: "/",
     siteName: "Sentinel",
-    title: "Sentinel — Multimodal Video Search & Intelligence",
+    title: "Sentinel — Video Search & Object Detection",
     description:
-      "Search recorded video footage with natural language. Direct frame verification, zero hallucinations, powered by multimodal neural embeddings.",
+      "Search recorded video footage with natural language. Direct frame verification and object detections.",
     images: [
       {
         url: "/logo.svg",
         width: 800,
         height: 200,
-        alt: "Sentinel — Multimodal Video Intelligence Logo",
+        alt: "Sentinel Logo",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Sentinel — Multimodal Video Search & Intelligence",
+    title: "Sentinel — Video Search & Object Detection",
     description:
-      "Search recorded video footage with natural language. Direct frame verification, zero hallucinations.",
+      "Search recorded video footage with natural language. Direct frame verification and object detections.",
     images: ["/logo.svg"],
   },
   robots: {
@@ -104,7 +101,10 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-screen bg-app text-txt-primary antialiased font-sans selection:bg-accent/20">
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          <Toaster position="top-right" toastOptions={{ className: "text-xs font-sans" }} />
+          {children}
+        </AuthProvider>
       </body>
     </html>
   );

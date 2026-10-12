@@ -215,3 +215,61 @@ export function getClipDownloadUrl(videoId: string, segmentId: string): string {
   return `${API_BASE}/clips/${videoId}/${segmentId}`;
 }
 
+export interface DemoStatusResponse {
+  has_custom: boolean;
+  authenticated: boolean;
+  user_id?: string;
+  image_url?: string;
+  detections?: Array<{
+    class_name: string;
+    confidence: number;
+    box: { x1: number; y1: number; x2: number; y2: number };
+  }>;
+  filename?: string;
+}
+
+export async function fetchDemoStatus(): Promise<DemoStatusResponse> {
+  const res = await fetch(`${API_BASE}/demo/status`, {
+    headers: { ...getAuthHeaders() },
+    cache: "no-store",
+  });
+  if (!res.ok) return { has_custom: false, authenticated: false };
+  const data = await res.json();
+  if (data.image_url && !data.image_url.startsWith("http")) {
+    const origin = API_BASE.replace(/\/api\/v1\/?$/, "");
+    data.image_url = `${origin}${data.image_url}`;
+  }
+  return data;
+}
+
+export async function uploadDemoImage(file: File): Promise<DemoStatusResponse> {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const res = await fetch(`${API_BASE}/demo/annotate`, {
+    method: "POST",
+    headers: { ...getAuthHeaders() },
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: "Failed to upload demo image" }));
+    throw new Error(err.detail || "Failed to upload demo image");
+  }
+
+  const data = await res.json();
+  if (data.image_url && !data.image_url.startsWith("http")) {
+    const origin = API_BASE.replace(/\/api\/v1\/?$/, "");
+    data.image_url = `${origin}${data.image_url}`;
+  }
+  return data;
+}
+
+export async function resetDemoImage(): Promise<void> {
+  const res = await fetch(`${API_BASE}/demo/image`, {
+    method: "DELETE",
+    headers: { ...getAuthHeaders() },
+  });
+  if (!res.ok) throw new Error("Failed to reset demo image");
+}
+

@@ -245,9 +245,6 @@ export const VideoSizeComparisonModal: React.FC<VideoSizeComparisonModalProps> =
             <div>
               <h2 className="text-sm font-semibold text-txt-primary flex items-center gap-2">
                 Annotated Video Size & Compression Analyzer
-                <span className="px-2 py-0.5 rounded-full bg-accent-subtle text-accent-text text-[10px] font-mono font-medium">
-                  Adaptive Delta Engine
-                </span>
               </h2>
               <p className="text-[11px] text-txt-tertiary">
                 Simulate storage savings based on bounding box motion transformations (Δ BB) and confidence variance.
@@ -301,11 +298,11 @@ export const VideoSizeComparisonModal: React.FC<VideoSizeComparisonModalProps> =
               </p>
             </div>
 
-            {/* Card 3: Adaptive Delta-Optimized Video (USP) */}
+            {/* Card 3: Adaptive Delta-Optimized Video */}
             <div className="p-3.5 rounded-lg bg-emerald-500/5 border border-emerald-400/70 dark:border-emerald-800/50 space-y-1.5 relative overflow-hidden">
               <div className="flex items-center justify-between text-emerald-700 dark:text-emerald-400 text-[11px]">
                 <span className="font-semibold flex items-center gap-1">
-                  <Sparkles className="w-3.5 h-3.5 text-emerald-600" /> Adaptive Delta Size (USP)
+                  <Sparkles className="w-3.5 h-3.5 text-emerald-600" /> Adaptive Optimized Size
                 </span>
                 <span className="px-1.5 py-0.2 rounded text-[10px] font-mono font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
                   Save {totals.annotationOverheadReductionPercent}%
@@ -409,12 +406,12 @@ export const VideoSizeComparisonModal: React.FC<VideoSizeComparisonModalProps> =
             </div>
           </div>
 
-          {/* Technical USP Explanation Card */}
+          {/* Technical Explanation Card */}
           <div className="p-3.5 rounded-lg bg-surface-raised border border-border-default flex items-start gap-3">
             <Zap className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
             <div className="space-y-1">
               <div className="font-semibold text-txt-primary text-xs">
-                How Class-Adaptive Bounding Box Compression Works (Your Strategic USP)
+                How Class-Adaptive Bounding Box Compression Works
               </div>
               <p className="text-[11px] text-txt-secondary leading-relaxed">
                 H.264/H.265 codecs rely on temporal motion prediction (<span className="font-mono text-[10px]">P/B-frames</span>). Continuous per-frame bounding box graphics constantly introduce artificial sharp edges, destroying inter-frame redundancy. By analyzing coordinate displacement (<strong>Δ BB</strong>) and score stability (<strong>Δ Conf</strong>), Sentinel burns in annotations adaptively—allocating higher data density to rapidly changing objects and caching static ones to drastically slash file size without losing tracking accuracy.

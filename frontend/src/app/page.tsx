@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import {
   Square,
@@ -14,12 +14,112 @@ import {
   Clock,
   ChevronRight,
   Cctv,
+  Camera,
+  Lock,
+  RotateCcw,
+  Loader2,
 } from "lucide-react";
 import Logo from "@/components/ui/Logo";
 import AuthButton from "@/components/auth/AuthButton";
+import { useAuth } from "@/context/AuthContext";
+import { fetchDemoStatus, uploadDemoImage, resetDemoImage, DemoStatusResponse } from "@/lib/api";
+import toast from "react-hot-toast";
 
 export default function HomePage() {
+  const { user, signInWithGoogle } = useAuth();
   const [isPlayingDemo, setIsPlayingDemo] = useState(true);
+  const [customDemo, setCustomDemo] = useState<DemoStatusResponse | null>(null);
+  const [isUploadingDemo, setIsUploadingDemo] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!user) {
+      setCustomDemo(null);
+      return;
+    }
+    fetchDemoStatus()
+      .then((res) => {
+        if (res.has_custom) {
+          setCustomDemo(res);
+        } else {
+          setCustomDemo(null);
+        }
+      })
+      .catch(() => setCustomDemo(null));
+  }, [user]);
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!user) {
+      handleUnloggedPrompt();
+      return;
+    }
+
+    try {
+      setIsUploadingDemo(true);
+      const loadingToast = toast.loading("Analyzing frame with object detector...");
+      const res = await uploadDemoImage(file);
+      toast.dismiss(loadingToast);
+      setCustomDemo(res);
+      toast.success(`Detections found: ${res.detections?.length || 0} objects highlighted!`);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to process image");
+    } finally {
+      setIsUploadingDemo(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const handleResetDemo = async () => {
+    try {
+      await resetDemoImage();
+      setCustomDemo(null);
+      toast.success("Restored default entrance gate footage");
+    } catch {
+      setCustomDemo(null);
+    }
+  };
+
+  const handleUnloggedPrompt = () => {
+    toast(
+      (t) => (
+        <div className="flex flex-col gap-2 p-1 max-w-[280px]">
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-stone-900">
+            <Lock className="w-3.5 h-3.5 text-amber-600" />
+            <span>Sign In Required</span>
+          </div>
+          <p className="text-[11px] text-stone-600 leading-snug">
+            Sign in to upload your own camera frame and test object detection live.
+          </p>
+          <div className="flex items-center gap-2 pt-1">
+            <button
+              onClick={async () => {
+                toast.dismiss(t.id);
+                try {
+                  await signInWithGoogle();
+                  toast.success("Signed in! You can now change the demo photo.");
+                } catch {
+                  // Sign-in cancelled
+                }
+              }}
+              className="px-2.5 py-1 text-xs bg-[#09090B] text-white rounded font-medium hover:bg-stone-800 transition-colors shadow-2xs"
+            >
+              Sign in with Google
+            </button>
+            <button
+              onClick={() => toast.dismiss(t.id)}
+              className="px-2 py-1 text-xs text-stone-500 hover:text-stone-800 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ),
+      { duration: 6000, id: "login-prompt-toast" }
+    );
+  };
 
   return (
     <div className="min-h-screen bg-app text-txt-primary flex flex-col font-sans selection:bg-amber-500/20">
@@ -104,18 +204,77 @@ export default function HomePage() {
         </div>
 
         {/* 3. Real-World Interactive Hero Demo Box */}
-        <div id="demo" className="w-full max-w-5xl mx-auto mt-14 rounded-md border border-stone-200 bg-surface overflow-hidden shadow-float text-left">
+        <div id="demo" className="scroll-mt-24 w-full max-w-5xl mx-auto mt-14 rounded-md border border-stone-200 bg-surface overflow-hidden shadow-float text-left">
           {/* Header Bar */}
-          <div className="h-9 px-4 bg-stone-100/90 border-b border-stone-200 flex items-center justify-between text-xs text-stone-600 select-none">
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1.5">
-                <div className="w-2.5 h-2.5 rounded-full bg-[#16A34A]" />
-                <span className="font-mono text-[11px] text-stone-700">Entrance-Gate-Camera-04.mp4</span>
+          <div className="h-10 px-4 bg-stone-100/90 border-b border-stone-200 flex items-center justify-between text-xs text-stone-600 select-none">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <div className="w-2.5 h-2.5 rounded-full bg-[#16A34A] shrink-0" />
+                <span className="font-mono text-[11px] text-stone-700 truncate max-w-[170px] sm:max-w-[280px]">
+                  {customDemo?.filename || "Entrance-Gate-Camera-04.mp4"}
+                </span>
+                {customDemo && (
+                  <span className="hidden sm:inline-block px-1.5 py-0.2 rounded text-[9px] font-mono bg-amber-100 text-amber-800 border border-amber-300 shrink-0">
+                    Custom Frame
+                  </span>
+                )}
               </div>
             </div>
-            <div className="flex items-center gap-3 text-[11px] font-mono text-stone-500">
-              <span>Duration 01:12:48</span>
-              <span>1080p</span>
+
+            {/* Change Photo Option (Logged-in vs Unlogged) */}
+            <div className="flex items-center gap-2 shrink-0">
+              {user ? (
+                <>
+                  {customDemo && (
+                    <button
+                      onClick={handleResetDemo}
+                      className="px-2 py-1 rounded-sm text-[11px] font-sans font-medium text-stone-600 hover:text-stone-900 hover:bg-stone-200/70 transition-colors flex items-center gap-1"
+                      title="Reset to default entrance gate camera"
+                    >
+                      <RotateCcw className="w-3 h-3 text-stone-500" />
+                      <span className="hidden sm:inline">Reset Default</span>
+                    </button>
+                  )}
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploadingDemo}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm bg-white hover:bg-amber-50/60 border border-stone-300 hover:border-amber-400 text-[11px] font-sans font-medium text-stone-800 hover:text-amber-900 shadow-2xs transition-all"
+                    title="Upload a photo to run object detection"
+                  >
+                    {isUploadingDemo ? (
+                      <>
+                        <Loader2 className="w-3 h-3 animate-spin text-amber-600" />
+                        <span>Analyzing...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Camera className="w-3.5 h-3.5 text-amber-600" />
+                        <span>Change Photo</span>
+                      </>
+                    )}
+                  </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/bmp"
+                    className="hidden"
+                    onChange={handleFileChange}
+                  />
+                </>
+              ) : (
+                <button
+                  onClick={handleUnloggedPrompt}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm bg-stone-100 hover:bg-stone-200/80 border border-stone-300 text-[11px] font-sans font-medium text-stone-600 hover:text-stone-900 shadow-2xs transition-colors"
+                  title="Sign in required to change this demo photo"
+                >
+                  <Lock className="w-3 h-3 text-stone-500" />
+                  <span>Change Photo · Sign in</span>
+                </button>
+              )}
+
+              <div className="hidden md:flex items-center gap-2 text-[11px] font-mono text-stone-400 pl-2 border-l border-stone-200">
+                <span>{customDemo ? "Single Frame" : "1080p"}</span>
+              </div>
             </div>
           </div>
 
@@ -124,39 +283,54 @@ export default function HomePage() {
             <div className="lg:col-span-7 bg-[#09090B] flex flex-col justify-between border-b lg:border-b-0 lg:border-r border-zinc-800 relative p-4">
               {/* Real World Footage Frame Canvas */}
               <div className="relative aspect-video w-full rounded-xs overflow-hidden flex items-center justify-center border border-zinc-800 bg-black">
-                {/* Real Surveillance Photo */}
-                <img
-                  src="/images/hero-cctv.jpg"
-                  alt="Real-world security camera footage of a white van"
-                  className="w-full h-full object-cover"
-                />
+                {customDemo?.image_url ? (
+                  /* Custom User Annotated Frame from Backend */
+                  <img
+                    src={customDemo.image_url}
+                    alt={customDemo.filename || "Custom camera frame"}
+                    className="w-full h-full object-contain bg-black"
+                  />
+                ) : (
+                  <>
+                    {/* Real Surveillance Photo */}
+                    <img
+                      src="/images/hero-cctv.jpg"
+                      alt="Real-world security camera footage of Entrance-Gate-Camera-04"
+                      className="w-full h-full object-cover"
+                    />
 
-                {/* Real Precision Bounding Box Over the White Van */}
-                <div
-                  className="absolute border-[2.5px] border-[#F59E0B] bg-[#F59E0B]/20 rounded-[2px] shadow-[0_0_14px_rgba(245,158,11,0.5)] transition-all"
-                  style={{
-                    top: "36%",
-                    left: "53%",
-                    width: "20%",
-                    height: "31%",
-                  }}
-                >
-                  {/* Label Tag */}
-                  <div className="absolute -top-5 left-0 px-1.5 py-0.5 bg-[#F59E0B] text-black text-[10px] font-mono font-bold rounded-t-[2px] flex items-center gap-1 shadow-xs">
-                    <span>vehicle</span>
-                    <span className="opacity-80">0.91</span>
-                  </div>
-                </div>
+                    {/* Real Precision Bounding Box Over the White Van */}
+                    <div
+                      className="absolute border-[2.5px] border-[#F59E0B] bg-[#F59E0B]/20 rounded-[2px] shadow-[0_0_14px_rgba(245,158,11,0.5)] transition-all"
+                      style={{
+                        top: "36%",
+                        left: "53%",
+                        width: "20%",
+                        height: "31%",
+                      }}
+                    >
+                      {/* Label Tag */}
+                      <div className="absolute -top-5 left-0 px-1.5 py-0.5 bg-[#F59E0B] text-black text-[10px] font-mono font-bold rounded-t-[2px] flex items-center gap-1 shadow-xs">
+                        <span>vehicle</span>
+                        <span className="opacity-80">0.91</span>
+                      </div>
+                    </div>
+                  </>
+                )}
 
                 {/* Match Chip Top Right */}
                 <div className="absolute top-2.5 right-2.5 px-2 py-1 bg-black/85 backdrop-blur-xs border border-[#F59E0B]/50 text-white font-mono text-[11px] rounded-xs flex items-center gap-1.5 shadow-sm">
                   <Diamond className="w-3 h-3 fill-current text-[#F59E0B]" />
-                  <span>Match · similarity 0.31</span>
+                  <span>
+                    {customDemo
+                      ? `${customDemo.detections?.length || 1} Detection${customDemo.detections?.length === 1 ? "" : "s"}`
+                      : "Match · similarity 0.31"}
+                  </span>
                 </div>
 
                 {/* Live Timecode Bottom Left */}
                 <div className="absolute bottom-2.5 left-2.5 px-2 py-0.5 bg-black/85 text-amber-400 font-mono text-[10px] rounded-xs border border-zinc-800">
-                  00:12:48.240 / 01:12:48.000
+                  {customDemo ? "USER_FRAME · 00:00:01.000" : "00:12:48.240 / 01:12:48.000"}
                 </div>
               </div>
 
@@ -172,7 +346,7 @@ export default function HomePage() {
                       <Square className="w-2.5 h-2.5 text-[#F59E0B]" /> Detection box
                     </span>
                   </div>
-                  <span>01:12:48</span>
+                  <span>{customDemo ? "00:00:01" : "01:12:48"}</span>
                 </div>
 
                 {/* Track with markers */}
@@ -188,7 +362,11 @@ export default function HomePage() {
 
               {/* Caption & Play State */}
               <div className="flex items-center justify-between text-[11px] text-zinc-400 pt-2 px-1">
-                <span>Sample run: &ldquo;white van near the entrance&rdquo;</span>
+                <span>
+                  {customDemo
+                    ? `Live test run on ${customDemo.filename || "user frame"}`
+                    : "Sample run: “white van near the entrance”"}
+                </span>
                 <button
                   onClick={() => setIsPlayingDemo(!isPlayingDemo)}
                   className="p-1 hover:text-white transition-colors text-zinc-400"
@@ -206,7 +384,9 @@ export default function HomePage() {
                 <div className="h-10 px-3 bg-stone-50 border border-stone-200 rounded-sm flex items-center gap-2 shadow-xs">
                   <Search className="w-4 h-4 text-[#B45309]" />
                   <span className="text-xs text-stone-900 font-medium truncate">
-                    white van near the entrance
+                    {customDemo?.detections?.[0]?.class_name
+                      ? `${customDemo.detections[0].class_name} in custom frame`
+                      : "white van near the entrance"}
                   </span>
                   <kbd className="ml-auto px-1.5 py-0.5 text-[10px] bg-surface border border-stone-300 rounded-xs font-mono text-stone-600">
                     ⏎
@@ -214,46 +394,68 @@ export default function HomePage() {
                 </div>
 
                 <div className="text-[11px] font-semibold text-stone-500 uppercase tracking-wider flex items-center justify-between">
-                  <span className="text-stone-800">Results (2)</span>
+                  <span className="text-stone-800">
+                    Results ({customDemo ? customDemo.detections?.length || 1 : 2})
+                  </span>
                   <span className="text-[10px] font-mono text-[#B45309]">Ranked by relevance</span>
                 </div>
 
                 {/* Result Row 1 (Selected) */}
                 <div className="p-3 rounded-sm border border-amber-300 bg-amber-50/70 space-y-1.5 transition-all">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-stone-900">Entrance-Gate-Camera-04</span>
+                    <span className="text-xs font-bold text-stone-900 truncate max-w-[200px]">
+                      {customDemo?.filename || "Entrance-Gate-Camera-04"}
+                    </span>
                     <span className="font-mono text-xs text-amber-900 font-bold px-1.5 py-0.5 rounded-xs bg-white border border-amber-200 shadow-2xs">
-                      0.31 sim
+                      {customDemo?.detections?.[0]?.confidence
+                        ? `${customDemo.detections[0].confidence} conf`
+                        : "0.31 sim"}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 text-[11px] text-stone-600 font-mono">
                     <Clock className="w-3 h-3 text-[#B45309]" />
-                    <span className="text-stone-900 font-semibold">00:12:41 – 00:12:48</span>
+                    <span className="text-stone-900 font-semibold">
+                      {customDemo ? "00:00:00 – 00:00:01" : "00:12:41 – 00:12:48"}
+                    </span>
                     <span>·</span>
-                    <span className="text-[#B45309] flex items-center gap-1 font-sans font-medium">
-                      <Square className="w-2.5 h-2.5 text-[#D97706]" /> Vehicle detected
+                    <span className="text-[#B45309] flex items-center gap-1 font-sans font-medium capitalize">
+                      <Square className="w-2.5 h-2.5 text-[#D97706]" />
+                      {customDemo?.detections?.[0]?.class_name
+                        ? `${customDemo.detections[0].class_name} detected`
+                        : "Vehicle detected"}
                     </span>
                   </div>
                   <div className="text-[11px] text-amber-800 flex items-center gap-1.5 pt-0.5">
                     <Diamond className="w-2.5 h-2.5 fill-current text-[#D97706]" />
-                    <span>Exact moment the van passes the gate</span>
+                    <span>
+                      {customDemo
+                        ? "Faster R-CNN detection verified on uploaded image"
+                        : "Exact moment the van passes the gate"}
+                    </span>
                   </div>
                 </div>
 
                 {/* Result Row 2 */}
                 <div className="p-3 rounded-sm border border-stone-200 bg-surface hover:bg-stone-50 transition-colors space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-stone-800">Parking-Gate-01</span>
+                    <span className="text-xs font-semibold text-stone-800">
+                      {customDemo ? "Detection-Candidates" : "Parking-Gate-01"}
+                    </span>
                     <span className="font-mono text-xs text-stone-600 px-1.5 py-0.5 rounded-xs bg-stone-100 border border-stone-200">
-                      0.24 sim
+                      {customDemo?.detections?.[1]?.confidence
+                        ? `${customDemo.detections[1].confidence} conf`
+                        : "0.24 sim"}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 text-[11px] text-stone-500 font-mono">
                     <Clock className="w-3 h-3 text-stone-400" />
                     <span>00:04:15 – 00:04:22</span>
                     <span>·</span>
-                    <span className="text-stone-600 flex items-center gap-1 font-sans">
-                      <Square className="w-2.5 h-2.5 text-stone-400" /> Vehicle
+                    <span className="text-stone-600 flex items-center gap-1 font-sans capitalize">
+                      <Square className="w-2.5 h-2.5 text-stone-400" />
+                      {customDemo?.detections?.[1]?.class_name
+                        ? `${customDemo.detections[1].class_name}`
+                        : "Vehicle"}
                     </span>
                   </div>
                 </div>
@@ -444,11 +646,11 @@ export default function HomePage() {
               </li>
               <li className="flex items-start gap-2.5">
                 <Check className="w-4 h-4 text-[#16A34A] flex-shrink-0 mt-0.5" />
-                <span>User-specific video libraries with Google Firebase authentication</span>
+                <span>User-specific video libraries and personal accounts</span>
               </li>
               <li className="flex items-start gap-2.5">
                 <Check className="w-4 h-4 text-[#16A34A] flex-shrink-0 mt-0.5" />
-                <span>Cloud storage acceleration via Cloudinary CDN &amp; Postgres vector database</span>
+                <span>Cloud video hosting and fast playback seeking</span>
               </li>
             </ul>
           </div>
@@ -502,7 +704,7 @@ export default function HomePage() {
       <footer className="h-16 bg-surface border-t border-border-default px-6 lg:px-10 flex items-center justify-between text-xs text-txt-secondary">
         <div className="flex items-center gap-3">
           <Logo size="sm" showBadge={false} />
-          <span className="text-stone-400">· Video Search &amp; Intelligence</span>
+          <span className="text-stone-400">· Video Search</span>
         </div>
 
         <div className="flex items-center gap-6">

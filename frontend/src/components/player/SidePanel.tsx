@@ -702,7 +702,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({
                   {isGeneratingDownload ? (
                     <>
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      <span>Rendering with OpenCV & FFmpeg...</span>
+                      <span>Rendering annotated video...</span>
                     </>
                   ) : (
                     <>
@@ -911,7 +911,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({
                   {isGeneratingDownload ? (
                     <>
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      <span>Generating with OpenCV & FFmpeg...</span>
+                      <span>Generating annotated video...</span>
                     </>
                   ) : (
                     <>

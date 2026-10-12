@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { LogOut, ShieldCheck, Loader2, ChevronDown, Video, User as UserIcon } from "lucide-react";
+import { LogOut, Loader2, ChevronDown, Video, User as UserIcon } from "lucide-react";
 import Link from "next/link";
 
 export const AuthButton: React.FC<{ className?: string }> = ({ className = "" }) => {
@@ -138,11 +138,6 @@ export const AuthButton: React.FC<{ className?: string }> = ({ className = "" })
                 <div className="text-[11px] text-stone-500 truncate">{user.email}</div>
               </div>
             </div>
-
-            <div className="inline-flex items-center gap-1.5 text-[10px] font-mono text-[#92400E] bg-amber-50/90 border border-amber-200/60 px-2 py-0.5 rounded-xs w-full mt-1">
-              <ShieldCheck className="w-3.5 h-3.5 text-[#B45309] shrink-0" />
-              <span className="truncate">Protected by Firebase Auth</span>
-            </div>
           </div>
 
           {/* Quick Links */}
@@ -153,7 +148,7 @@ export const AuthButton: React.FC<{ className?: string }> = ({ className = "" })
               className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xs text-stone-700 hover:text-stone-900 hover:bg-stone-50 transition-colors"
             >
               <Video className="w-3.5 h-3.5 text-stone-500" />
-              <span>My Video Vault</span>
+              <span>Video Library</span>
             </Link>
           </div>
 
