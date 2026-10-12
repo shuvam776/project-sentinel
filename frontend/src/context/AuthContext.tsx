@@ -32,13 +32,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
       setLoading(false);
       if (currentUser) {
         localStorage.setItem("sentinel_user_id", currentUser.uid);
+        try {
+          const token = await currentUser.getIdToken();
+          localStorage.setItem("sentinel_auth_token", token);
+        } catch {
+          // Token fetch fallback
+        }
       } else {
         localStorage.removeItem("sentinel_user_id");
+        localStorage.removeItem("sentinel_auth_token");
       }
     });
 

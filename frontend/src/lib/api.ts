@@ -17,6 +17,10 @@ function getAuthHeaders(): Record<string, string> {
     if (userId) {
       headers["X-User-ID"] = userId;
     }
+    const token = localStorage.getItem("sentinel_auth_token");
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
   }
   return headers;
 }
@@ -229,35 +233,56 @@ export interface DemoStatusResponse {
 }
 
 export async function fetchDemoStatus(): Promise<DemoStatusResponse> {
-  const res = await fetch(`${API_BASE}/demo/status`, {
-    headers: { ...getAuthHeaders() },
-    cache: "no-store",
-  });
-  if (!res.ok) return { has_custom: false, authenticated: false };
-  const data = await res.json();
-  if (data.image_url && !data.image_url.startsWith("http")) {
-    const origin = API_BASE.replace(/\/api\/v1\/?$/, "");
-    data.image_url = `${origin}${data.image_url}`;
+  const url = `${API_BASE}/demo/status`;
+  try {
+    const res = await fetch(url, {
+      headers: { ...getAuthHeaders() },
+      cache: "no-store",
+    });
+    if (!res.ok) {
+      console.warn(`[Sentinel API] GET ${url} returned ${res.status}`);
+      return { has_custom: false, authenticated: false };
+    }
+    const data = await res.json();
+    if (data.image_url && !data.image_url.startsWith("http")) {
+      const origin = API_BASE.replace(/\/api\/v1\/?$/, "");
+      data.image_url = `${origin}${data.image_url}`;
+    }
+    return data;
+  } catch (err) {
+    console.warn(`[Sentinel API] Failed to fetch demo status from ${url}:`, err);
+    return { has_custom: false, authenticated: false };
   }
-  return data;
 }
 
 export async function uploadDemoImage(file: File): Promise<DemoStatusResponse> {
   const formData = new FormData();
   formData.append("file", file);
 
-  const res = await fetch(`${API_BASE}/demo/annotate`, {
+  const url = `${API_BASE}/demo/annotate`;
+  console.log(`[Sentinel API] POST ${url} - Uploading "${file.name}" (${(file.size / 1024).toFixed(1)} KB)...`);
+
+  const res = await fetch(url, {
     method: "POST",
     headers: { ...getAuthHeaders() },
     body: formData,
   });
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ detail: "Failed to upload demo image" }));
-    throw new Error(err.detail || "Failed to upload demo image");
+    let errDetail = `Server returned HTTP ${res.status} ${res.statusText}`;
+    try {
+      const errJson = await res.json();
+      errDetail = errJson.detail || errJson.message || errDetail;
+    } catch {
+      const rawText = await res.text().catch(() => "");
+      if (rawText) errDetail = rawText.slice(0, 300);
+    }
+    console.error(`[Sentinel API] POST ${url} failed [${res.status}]:`, errDetail);
+    throw new Error(errDetail);
   }
 
   const data = await res.json();
+  console.log(`[Sentinel API] POST ${url} completed:`, data);
   if (data.image_url && !data.image_url.startsWith("http")) {
     const origin = API_BASE.replace(/\/api\/v1\/?$/, "");
     data.image_url = `${origin}${data.image_url}`;
@@ -266,10 +291,16 @@ export async function uploadDemoImage(file: File): Promise<DemoStatusResponse> {
 }
 
 export async function resetDemoImage(): Promise<void> {
-  const res = await fetch(`${API_BASE}/demo/image`, {
+  const url = `${API_BASE}/demo/image`;
+  console.log(`[Sentinel API] DELETE ${url} - Resetting demo image to default...`);
+  const res = await fetch(url, {
     method: "DELETE",
     headers: { ...getAuthHeaders() },
   });
-  if (!res.ok) throw new Error("Failed to reset demo image");
+  if (!res.ok) {
+    console.error(`[Sentinel API] DELETE ${url} failed [${res.status}]`);
+    throw new Error("Failed to reset demo image");
+  }
+  console.log(`[Sentinel API] DELETE ${url} successful.`);
 }
 

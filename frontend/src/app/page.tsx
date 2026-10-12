@@ -37,15 +37,20 @@ export default function HomePage() {
       setCustomDemo(null);
       return;
     }
+    console.log("[Sentinel Demo Image] Checking custom demo image for user:", user.uid);
     fetchDemoStatus()
       .then((res) => {
         if (res.has_custom) {
+          console.log("[Sentinel Demo Image] Active custom demo image found:", res);
           setCustomDemo(res);
         } else {
           setCustomDemo(null);
         }
       })
-      .catch(() => setCustomDemo(null));
+      .catch((err) => {
+        console.warn("[Sentinel Demo Image] Status check warning:", err?.message || err);
+        setCustomDemo(null);
+      });
   }, [user]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -53,20 +58,36 @@ export default function HomePage() {
     if (!file) return;
 
     if (!user) {
+      console.warn("[Sentinel Demo Image] Upload blocked: User must be signed in.");
       handleUnloggedPrompt();
       return;
     }
 
+    let loadingToastId: string | undefined;
     try {
       setIsUploadingDemo(true);
-      const loadingToast = toast.loading("Analyzing frame with object detector...");
+      loadingToastId = toast.loading("Analyzing frame with object detector...");
+      console.log(`[Sentinel Demo Image] Uploading "${file.name}" (${(file.size / 1024).toFixed(1)} KB)...`);
+
       const res = await uploadDemoImage(file);
-      toast.dismiss(loadingToast);
+
+      if (loadingToastId) toast.dismiss(loadingToastId);
       setCustomDemo(res);
+      console.log("[Sentinel Demo Image] Analysis succeeded:", res);
       toast.success(`Detections found: ${res.detections?.length || 0} objects highlighted!`);
     } catch (err: any) {
-      toast.error(err.message || "Failed to process image");
+      if (loadingToastId) toast.dismiss(loadingToastId);
+      const msg = err?.message || "Failed to process image";
+      console.error("[Sentinel Demo Image] Upload error:", {
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: file.type,
+        error: msg,
+        raw: err,
+      });
+      toast.error(msg);
     } finally {
+      if (loadingToastId) toast.dismiss(loadingToastId);
       setIsUploadingDemo(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
@@ -74,10 +95,13 @@ export default function HomePage() {
 
   const handleResetDemo = async () => {
     try {
+      console.log("[Sentinel Demo Image] Restoring default demo entrance gate footage...");
       await resetDemoImage();
       setCustomDemo(null);
+      console.log("[Sentinel Demo Image] Reset to default successful.");
       toast.success("Restored default entrance gate footage");
-    } catch {
+    } catch (err: any) {
+      console.error("[Sentinel Demo Image] Reset error:", err);
       setCustomDemo(null);
     }
   };
