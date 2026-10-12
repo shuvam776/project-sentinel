@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Film, ArrowRight, MoreVertical, Trash2, RotateCw, Download, Play, Search, Pencil, Check, X } from "lucide-react";
@@ -22,12 +23,55 @@ export const VideoCard: React.FC<VideoCardProps> = ({ video, onDelete, onRetry, 
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDeleteConfirm, setIsDeleteConfirm] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [openUpwards, setOpenUpwards] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [menuCoords, setMenuCoords] = useState<{
+    top?: number;
+    bottom?: number;
+    right: number;
+    openUpwards: boolean;
+  } | null>(null);
   const [isEditingName, setIsEditingName] = useState(false);
   const [nameInput, setNameInput] = useState(video.original_filename);
   const [isSavingName, setIsSavingName] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const updateMenuPosition = useCallback(() => {
+    if (!buttonRef.current) return;
+    const rect = buttonRef.current.getBoundingClientRect();
+    const menuHeight = 240;
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const spaceAbove = rect.top;
+    const openUp = spaceBelow < menuHeight && spaceAbove > 150;
+
+    if (openUp) {
+      setMenuCoords({
+        bottom: window.innerHeight - rect.top + 6,
+        right: Math.max(8, window.innerWidth - rect.right),
+        openUpwards: true,
+      });
+    } else {
+      setMenuCoords({
+        top: rect.bottom + 6,
+        right: Math.max(8, window.innerWidth - rect.right),
+        openUpwards: false,
+      });
+    }
+  }, []);
+
+  const toggleMenu = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!menuOpen) {
+      updateMenuPosition();
+      setMenuOpen(true);
+    } else {
+      setMenuOpen(false);
+    }
+  };
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -44,23 +88,22 @@ export const VideoCard: React.FC<VideoCardProps> = ({ video, onDelete, onRetry, 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") setMenuOpen(false);
     };
+    const handleScrollOrResize = () => {
+      setMenuOpen(false);
+    };
+
     document.addEventListener("mousedown", handleClickOutside);
     document.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("scroll", handleScrollOrResize, true);
+    window.addEventListener("resize", handleScrollOrResize);
+
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
       document.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("scroll", handleScrollOrResize, true);
+      window.removeEventListener("resize", handleScrollOrResize);
     };
   }, [menuOpen]);
-
-  const toggleMenu = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!menuOpen && buttonRef.current) {
-      const rect = buttonRef.current.getBoundingClientRect();
-      const spaceBelow = window.innerHeight - rect.bottom;
-      setOpenUpwards(spaceBelow < 250);
-    }
-    setMenuOpen((prev) => !prev);
-  };
 
   const handleSaveName = async () => {
     const trimmed = nameInput.trim();
@@ -217,13 +260,17 @@ export const VideoCard: React.FC<VideoCardProps> = ({ video, onDelete, onRetry, 
             <MoreVertical className="w-3.5 h-3.5" />
           </button>
 
-          {menuOpen && (
+          {mounted && menuOpen && menuCoords && typeof document !== "undefined" && createPortal(
             <div
               ref={menuRef}
-              className={clsx(
-                "absolute right-0 w-48 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-md shadow-float z-50 p-1 text-xs space-y-0.5 animate-in fade-in zoom-in-95 duration-100 text-left",
-                openUpwards ? "bottom-full mb-1.5" : "top-full mt-1.5"
-              )}
+              style={{
+                position: "fixed",
+                top: menuCoords.top !== undefined ? `${menuCoords.top}px` : undefined,
+                bottom: menuCoords.bottom !== undefined ? `${menuCoords.bottom}px` : undefined,
+                right: `${menuCoords.right}px`,
+                zIndex: 99999,
+              }}
+              className="w-48 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-md shadow-xl p-1 text-xs space-y-0.5 animate-in fade-in zoom-in-95 duration-100 text-left select-none"
               onClick={(e) => e.stopPropagation()}
             >
               <button
@@ -295,7 +342,8 @@ export const VideoCard: React.FC<VideoCardProps> = ({ video, onDelete, onRetry, 
                 <Trash2 className="w-3.5 h-3.5 text-rose-600 shrink-0" />
                 <span>Delete video...</span>
               </button>
-            </div>
+            </div>,
+            document.body
           )}
         </div>
 

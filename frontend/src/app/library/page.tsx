@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useCallback, useRef } from "react";
-import { Upload, Search, X, ChevronDown, List, Columns3, CircleHelp, Loader2, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Upload, Search, X, ChevronDown, List, Columns3, CircleHelp, Loader2, CheckCircle2, AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react";
 import AppShell from "@/components/shell/AppShell";
 import Header from "@/components/shell/Header";
 import Button from "@/components/ui/Button";
@@ -51,6 +51,15 @@ export default function LibraryPage() {
   const [filterName, setFilterName] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [sortOption, setSortOption] = useState<string>("newest");
+
+  // Pagination (10 videos per page)
+  const PAGE_SIZE = 10;
+  const [currentPage, setCurrentPage] = useState<number>(1);
+
+  // Reset pagination to page 1 whenever search filters or sorting change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterName, statusFilter, sortOption]);
 
   // Upload state
   const [uploadingFiles, setUploadingFiles] = useState<
@@ -149,11 +158,33 @@ export default function LibraryPage() {
       return 0;
     });
 
-  // Categorize for Board view columns
-  const uploadingVideos = filteredVideos.filter((v) => v.status === "queued");
-  const indexingVideos = filteredVideos.filter((v) => v.status === "processing");
-  const readyVideos = filteredVideos.filter((v) => v.status === "completed");
-  const needsAttentionVideos = filteredVideos.filter((v) => v.status === "failed");
+  // Pagination Slicing
+  const totalVideos = filteredVideos.length;
+  const totalPages = Math.max(1, Math.ceil(totalVideos / PAGE_SIZE));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const startIndex = (safeCurrentPage - 1) * PAGE_SIZE;
+  const endIndex = Math.min(startIndex + PAGE_SIZE, totalVideos);
+  const paginatedVideos = filteredVideos.slice(startIndex, endIndex);
+
+  // Categorize for Board view columns (use paginated set if total > 10)
+  const displayedVideos = totalVideos > PAGE_SIZE ? paginatedVideos : filteredVideos;
+  const uploadingVideos = displayedVideos.filter((v) => v.status === "queued");
+  const indexingVideos = displayedVideos.filter((v) => v.status === "processing");
+  const readyVideos = displayedVideos.filter((v) => v.status === "completed");
+  const needsAttentionVideos = displayedVideos.filter((v) => v.status === "failed");
+
+  const getPaginationItems = (current: number, total: number): (number | string)[] => {
+    if (total <= 7) {
+      return Array.from({ length: total }, (_, i) => i + 1);
+    }
+    if (current <= 4) {
+      return [1, 2, 3, 4, 5, "...", total];
+    }
+    if (current >= total - 3) {
+      return [1, "...", total - 4, total - 3, total - 2, total - 1, total];
+    }
+    return [1, "...", current - 1, current, current + 1, "...", total];
+  };
 
   const hasProcessing = videos.some((v) => v.status === "queued" || v.status === "processing");
 
@@ -203,7 +234,7 @@ export default function LibraryPage() {
       />
 
       <div
-        className="p-4 md:p-6 max-w-[1280px] w-full min-h-full flex flex-col select-none"
+        className="p-4 md:p-6 pb-20 max-w-[1280px] w-full min-h-full flex flex-col select-none"
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
@@ -321,6 +352,9 @@ export default function LibraryPage() {
                 </div>
 
                 <span className="text-xs font-mono text-txt-tertiary">
+                  {totalVideos > PAGE_SIZE && (
+                    <span>Page {safeCurrentPage} of {totalPages} · </span>
+                  )}
                   {filteredVideos.length} {filteredVideos.length === 1 ? "video" : "videos"}
                 </span>
               </div>
@@ -371,11 +405,11 @@ export default function LibraryPage() {
                     ))}
 
                     {/* Video Rows */}
-                    {filteredVideos.map((video, idx) => (
+                    {paginatedVideos.map((video, idx) => (
                       <VideoRow
                         key={video.id}
                         video={video}
-                        isLastRow={idx >= Math.max(0, filteredVideos.length - 2)}
+                        isLastRow={idx >= Math.max(0, paginatedVideos.length - 2)}
                         onDelete={handleDelete}
                         onRetry={handleRetry}
                         onRename={handleRename}
@@ -574,6 +608,80 @@ export default function LibraryPage() {
                       </div>
                     )}
                   </div>
+                </div>
+              </div>
+            )}
+
+            {/* Pagination Controls (shown when more than 10 videos) */}
+            {totalVideos > PAGE_SIZE && (
+              <div className="mt-5 flex flex-col sm:flex-row items-center justify-between gap-3 px-3.5 py-2.5 rounded-md border border-border-default bg-surface text-xs select-none">
+                <div className="text-txt-secondary font-mono text-[11px]">
+                  Showing <span className="font-semibold text-txt-primary">{startIndex + 1}</span>–<span className="font-semibold text-txt-primary">{endIndex}</span> of{" "}
+                  <span className="font-semibold text-txt-primary">{totalVideos}</span> videos
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCurrentPage((p) => Math.max(1, p - 1));
+                      document.getElementById("main")?.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                    disabled={safeCurrentPage <= 1}
+                    className="h-7 px-2.5 rounded-sm border border-border-default bg-surface hover:bg-surface-raised disabled:opacity-40 disabled:cursor-not-allowed text-txt-primary font-medium flex items-center gap-1 transition-colors cursor-pointer text-xs"
+                    aria-label="Previous page"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                    <span>Previous</span>
+                  </button>
+
+                  {/* Page numbers */}
+                  <div className="flex items-center gap-1">
+                    {getPaginationItems(safeCurrentPage, totalPages).map((item, idx) => {
+                      if (item === "...") {
+                        return (
+                          <span key={`ellipsis-${idx}`} className="px-1 text-txt-tertiary font-mono text-xs">
+                            …
+                          </span>
+                        );
+                      }
+                      const pageNum = Number(item);
+                      const isActive = pageNum === safeCurrentPage;
+                      return (
+                        <button
+                          key={pageNum}
+                          type="button"
+                          onClick={() => {
+                            setCurrentPage(pageNum);
+                            document.getElementById("main")?.scrollTo({ top: 0, behavior: "smooth" });
+                          }}
+                          className={clsx(
+                            "w-7 h-7 rounded-sm text-xs font-mono font-medium transition-colors cursor-pointer flex items-center justify-center",
+                            isActive
+                              ? "bg-accent text-accent-text border border-accent shadow-xs font-semibold"
+                              : "border border-border-default bg-surface hover:bg-surface-raised text-txt-primary"
+                          )}
+                          aria-current={isActive ? "page" : undefined}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCurrentPage((p) => Math.min(totalPages, p + 1));
+                      document.getElementById("main")?.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                    disabled={safeCurrentPage >= totalPages}
+                    className="h-7 px-2.5 rounded-sm border border-border-default bg-surface hover:bg-surface-raised disabled:opacity-40 disabled:cursor-not-allowed text-txt-primary font-medium flex items-center gap-1 transition-colors cursor-pointer text-xs"
+                    aria-label="Next page"
+                  >
+                    <span>Next</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               </div>
             )}
