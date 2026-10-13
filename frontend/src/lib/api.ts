@@ -147,7 +147,7 @@ export async function uploadVideo(
 }
 
 export async function searchVideo(params: {
-  videoId: string;
+  videoId?: string;
   query: string;
   filterClasses?: string[];
   minScore?: number;
@@ -161,7 +161,7 @@ export async function searchVideo(params: {
       ...getAuthHeaders(),
     },
     body: JSON.stringify({
-      video_id: params.videoId,
+      video_id: params.videoId || null,
       query: params.query,
       filter_classes: params.filterClasses && params.filterClasses.length > 0 ? params.filterClasses : null,
       min_score: params.minScore ?? 0.18,

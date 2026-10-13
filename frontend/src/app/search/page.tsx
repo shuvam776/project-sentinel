@@ -2,20 +2,33 @@
 
 import React, { useEffect, useState, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { ArrowUpRight, History, X, ChevronDown } from "lucide-react";
+import {
+  ArrowUpRight,
+  History,
+  X,
+  Search,
+  SlidersHorizontal,
+  Layers,
+  Sparkles,
+  Tag,
+  Film,
+  CheckCircle2,
+} from "lucide-react";
 import AppShell from "@/components/shell/AppShell";
 import Header from "@/components/shell/Header";
 import QueryField from "@/components/search/QueryField";
-import ClassFilter from "@/components/data/ClassFilter";
 import ResultRow from "@/components/search/ResultRow";
+import ClassFilterModal from "@/components/search/ClassFilterModal";
+import VideoScopeSelector from "@/components/search/VideoScopeSelector";
 import InlineAlert from "@/components/ui/InlineAlert";
 import { searchVideo, fetchVideos, fetchSupportedClasses } from "@/lib/api";
 import { SearchResultSegment, VideoItem } from "@/types";
 
 const EXAMPLE_QUERIES = [
-  "person carrying a bag",
-  "white van near the entrance",
-  "red car moving fast",
+  "person carrying a backpack",
+  "white vehicle near the entrance",
+  "car moving fast",
+  "bicycle or motorcycle",
 ];
 
 function SearchContent() {
@@ -30,7 +43,7 @@ function SearchContent() {
   const [selectedClasses, setSelectedClasses] = useState<string[]>([]);
 
   const [videos, setVideos] = useState<VideoItem[]>([]);
-  const [supportedClasses, setSupportedClasses] = useState<string[]>(["person", "vehicle", "bag"]);
+  const [supportedClasses, setSupportedClasses] = useState<string[]>([]);
 
   const [results, setResults] = useState<SearchResultSegment[]>([]);
   const [loading, setLoading] = useState(false);
@@ -44,7 +57,7 @@ function SearchContent() {
       const stored = localStorage.getItem("sentinel.recent_queries");
       if (stored) setRecentQueries(JSON.parse(stored));
     } catch {
-      // Ignore localStorage errors
+      // Ignore
     }
   }, []);
 
@@ -91,10 +104,13 @@ function SearchContent() {
       saveRecentQuery(searchQuery);
 
       try {
+        const targetVideoId = videoId !== undefined ? videoId : selectedVideoId;
+        const targetClasses = classesFilter !== undefined ? classesFilter : selectedClasses;
+
         const res = await searchVideo({
-          videoId: videoId || selectedVideoId,
+          videoId: targetVideoId || undefined,
           query: searchQuery,
-          filterClasses: classesFilter !== undefined ? classesFilter : selectedClasses,
+          filterClasses: targetClasses.length > 0 ? targetClasses : undefined,
         });
 
         setResults(res.segments || []);
@@ -109,7 +125,7 @@ function SearchContent() {
     [selectedVideoId, selectedClasses]
   );
 
-  // Sync URL on search
+  // Sync URL on initial mount or back/forward navigation
   useEffect(() => {
     if (urlQuery) {
       setQuery(urlQuery);
@@ -124,6 +140,13 @@ function SearchContent() {
     router.push(`/search?${params.toString()}`);
   };
 
+  const handleSelectVideo = (videoId: string) => {
+    setSelectedVideoId(videoId);
+    if (query.trim()) {
+      executeSearch(query, videoId, selectedClasses);
+    }
+  };
+
   const handleClassFilterChange = (classes: string[]) => {
     setSelectedClasses(classes);
     if (query.trim()) {
@@ -131,14 +154,19 @@ function SearchContent() {
     }
   };
 
+  const handleRemoveSingleClass = (clsName: string) => {
+    const next = selectedClasses.filter((c) => c !== clsName);
+    handleClassFilterChange(next);
+  };
+
   const videoMap = new Map<string, string>();
   videos.forEach((v) => videoMap.set(v.id, v.original_filename));
 
-  const readyVideos = videos.filter((v) => v.status === "completed" || v.status === "processing");
+  const selectedVideoItem = videos.find((v) => v.id === selectedVideoId);
 
   return (
-    <div className="p-4 md:p-6 max-w-[960px] w-full mx-auto space-y-4 select-none">
-      {/* Query Input Field (48px) */}
+    <div className="p-3.5 sm:p-5 md:p-6 max-w-[980px] w-full mx-auto space-y-4 sm:space-y-5 select-none">
+      {/* 1. Surveillance Natural Language Query Input */}
       <QueryField
         value={query}
         onChange={setQuery}
@@ -146,94 +174,134 @@ function SearchContent() {
         loading={loading}
       />
 
-      {/* Scope and Class Filters Bar (32px) */}
-      <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Scope Selector */}
-          <div className="relative">
-            <select
-              value={selectedVideoId}
-              onChange={(e) => {
-                setSelectedVideoId(e.target.value);
-                if (query.trim()) executeSearch(query, e.target.value);
-              }}
-              className="h-7 px-2.5 pr-7 bg-surface-raised border border-border-default rounded-sm text-xs text-txt-primary appearance-none cursor-pointer focus:outline-none hover:border-border-strong"
-            >
-              <option value="">Scope: All ready videos ({readyVideos.length})</option>
-              {readyVideos.map((v) => (
-                <option key={v.id} value={v.id}>
-                  {v.original_filename}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="w-3 h-3 text-txt-tertiary absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
-          </div>
+      {/* 2. Target Footage Scope (Videos to Search From) */}
+      {videos.length > 0 && (
+        <VideoScopeSelector
+          videos={videos}
+          selectedVideoId={selectedVideoId}
+          onSelectVideo={handleSelectVideo}
+        />
+      )}
 
-          {/* Class Filter Toggles */}
-          <ClassFilter
-            classes={supportedClasses}
-            selectedClasses={selectedClasses}
-            onChange={handleClassFilterChange}
-          />
+      {/* 3. Filter Action Toolbar */}
+      <div className="flex flex-wrap items-center justify-between gap-2.5 pt-1 border-t border-border-subtle">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Class Filter Trigger Button with Modal */}
+          {supportedClasses.length > 0 && (
+            <ClassFilterModal
+              classes={supportedClasses}
+              selectedClasses={selectedClasses}
+              onChange={handleClassFilterChange}
+            />
+          )}
+
+          {/* Scope Indicator Pill */}
+          <div className="h-8 px-2.5 rounded-sm bg-surface-raised border border-border-default flex items-center gap-1.5 text-xs text-txt-secondary">
+            <span className="text-txt-tertiary">Scope:</span>
+            <span className="font-medium text-txt-primary truncate max-w-[150px] sm:max-w-[220px]">
+              {selectedVideoItem ? selectedVideoItem.original_filename : "All Ready Videos"}
+            </span>
+          </div>
         </div>
 
-        {selectedClasses.length > 0 && (
+        {/* Clear All Filters Button */}
+        {(selectedClasses.length > 0 || selectedVideoId) && (
           <button
-            onClick={() => handleClassFilterChange([])}
-            className="text-xs text-txt-tertiary hover:text-txt-primary transition-colors"
+            type="button"
+            onClick={() => {
+              setSelectedClasses([]);
+              setSelectedVideoId("");
+              if (query.trim()) executeSearch(query, "", []);
+            }}
+            className="text-xs text-txt-tertiary hover:text-txt-primary hover:underline transition-colors cursor-pointer"
           >
-            Clear filters
+            Reset scope & filters
           </button>
         )}
       </div>
 
-      {/* Idle State (No search run yet) */}
-      {!query && results.length === 0 && !loading && (
-        <div className="pt-6 space-y-6">
-          {/* Example Queries */}
-          <div className="space-y-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-txt-tertiary">
-              Try
+      {/* 4. Active Filter Chips Row (Visible only when classes are selected) */}
+      {selectedClasses.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5 p-2 rounded-md bg-amber-500/5 border border-amber-500/20 text-xs animate-in fade-in duration-100">
+          <span className="text-[11px] font-semibold text-amber-800 dark:text-amber-300 mr-1 flex items-center gap-1">
+            <Tag className="w-3 h-3 text-amber-600" />
+            Active Class Filters:
+          </span>
+          {selectedClasses.map((cls) => (
+            <span
+              key={cls}
+              className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white dark:bg-stone-900 border border-amber-500/30 text-amber-900 dark:text-amber-200 text-[11px] font-medium shadow-2xs"
+            >
+              <span className="capitalize">{cls}</span>
+              <button
+                type="button"
+                onClick={() => handleRemoveSingleClass(cls)}
+                className="hover:text-red-500 transition-colors cursor-pointer"
+                title={`Remove ${cls} filter`}
+              >
+                <X className="w-3 h-3" />
+              </button>
             </span>
-            <div className="space-y-1">
+          ))}
+          <button
+            type="button"
+            onClick={() => handleClassFilterChange([])}
+            className="text-[11px] text-amber-700 dark:text-amber-400 hover:underline font-semibold ml-auto cursor-pointer"
+          >
+            Clear all
+          </button>
+        </div>
+      )}
+
+      {/* 5. Idle Exploration State (No active search query) */}
+      {!query && results.length === 0 && !loading && (
+        <div className="pt-4 space-y-6">
+          {/* Quick Surveillance Example Queries */}
+          <div className="space-y-2.5">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-txt-tertiary flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-accent" />
+              Suggested Searches
+            </span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {EXAMPLE_QUERIES.map((ex) => (
                 <button
                   key={ex}
                   onClick={() => handleSubmit(ex)}
-                  className="flex items-center gap-2 w-full px-3 py-2 rounded-sm text-xs text-txt-secondary hover:bg-surface hover:text-txt-primary transition-colors text-left"
+                  className="flex items-center justify-between p-3 rounded-md bg-surface border border-border-default hover:border-border-strong hover:bg-surface-raised text-xs text-txt-secondary hover:text-txt-primary transition-all text-left group cursor-pointer shadow-2xs"
                 >
-                  <ArrowUpRight className="w-3.5 h-3.5 text-txt-tertiary" />
-                  <span>{ex}</span>
+                  <span className="font-medium group-hover:text-txt-primary">{ex}</span>
+                  <ArrowUpRight className="w-4 h-4 text-txt-tertiary group-hover:text-accent transition-colors" />
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Recent Queries */}
+          {/* Recent Queries List */}
           {recentQueries.length > 0 && (
-            <div className="space-y-2">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-txt-tertiary">
-                Recent
+            <div className="space-y-2 pt-2 border-t border-border-subtle">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-txt-tertiary flex items-center gap-1.5">
+                <History className="w-3.5 h-3.5" />
+                Recent History
               </span>
               <div className="space-y-1">
                 {recentQueries.map((rq) => (
                   <div
                     key={rq}
-                    className="group flex items-center justify-between px-3 py-2 rounded-sm text-xs text-txt-secondary hover:bg-surface hover:text-txt-primary transition-colors"
+                    className="group flex items-center justify-between px-3 py-2 rounded-sm bg-surface border border-border-subtle hover:border-border-default text-xs text-txt-secondary hover:bg-surface-raised hover:text-txt-primary transition-colors"
                   >
                     <button
                       onClick={() => handleSubmit(rq)}
-                      className="flex items-center gap-2 min-w-0 flex-1 text-left"
+                      className="flex items-center gap-2 min-w-0 flex-1 text-left cursor-pointer"
                     >
-                      <History className="w-3.5 h-3.5 text-txt-tertiary" />
+                      <History className="w-3.5 h-3.5 text-txt-tertiary shrink-0" />
                       <span className="truncate">{rq}</span>
                     </button>
                     <button
                       onClick={() => removeRecentQuery(rq)}
-                      className="opacity-0 group-hover:opacity-100 p-1 text-txt-tertiary hover:text-txt-primary"
-                      title="Remove from recent"
+                      className="opacity-0 group-hover:opacity-100 p-1 text-txt-tertiary hover:text-danger cursor-pointer transition-opacity"
+                      title="Remove from history"
                     >
-                      <X className="w-3 h-3" />
+                      <X className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 ))}
@@ -243,43 +311,57 @@ function SearchContent() {
         </div>
       )}
 
-      {/* Loading Skeletons */}
+      {/* 6. Loading Skeletons */}
       {loading && (
         <div className="space-y-3 pt-4">
-          <div className="text-xs text-txt-secondary font-mono">Searching footage...</div>
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-28 rounded-sm bg-surface-raised animate-pulse-soft border border-border-subtle" />
+          <div className="flex items-center gap-2 text-xs text-txt-secondary font-mono">
+            <span className="w-2 h-2 rounded-full bg-accent animate-ping" />
+            <span>Scanning footage vectors & ranking detection matches...</span>
+          </div>
+          {[1, 2, 3].map((i) => (
+            <div
+              key={i}
+              className="h-28 rounded-md bg-surface-raised animate-pulse border border-border-subtle"
+            />
           ))}
         </div>
       )}
 
-      {/* Error State */}
+      {/* 7. Error State */}
       {error && (
         <InlineAlert tone="danger" title="Search failed">
           {error}
         </InlineAlert>
       )}
 
-      {/* Results Header */}
+      {/* 8. Search Results List */}
       {!loading && results.length > 0 && (
-        <div className="pt-2">
-          <div className="flex items-center justify-between border-b border-border-default pb-2 text-xs">
-            <div>
-              <span className="font-semibold text-txt-primary">{results.length} matches</span>
-              <span className="text-txt-tertiary ml-2">
-                Ranked by similarity to your query. Review the footage to confirm.
+        <div className="pt-2 space-y-3">
+          <div className="flex items-center justify-between border-b border-border-default pb-2.5 text-xs">
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-sm text-txt-primary">
+                {results.length} {results.length === 1 ? "match" : "matches"}
+              </span>
+              <span className="text-txt-tertiary">
+                · Ranked by class detection frequency & semantic score
               </span>
             </div>
+
+            {selectedVideoItem && (
+              <span className="hidden sm:inline-block text-[11px] text-txt-secondary bg-surface-raised px-2 py-0.5 rounded-xs border border-border-subtle">
+                Within {selectedVideoItem.original_filename}
+              </span>
+            )}
           </div>
 
-          {/* Result List */}
-          <div className="divide-y divide-border-subtle">
+          {/* Results List */}
+          <div className="divide-y divide-border-subtle rounded-md border border-border-default bg-surface overflow-hidden shadow-xs">
             {results.map((segment, idx) => (
               <ResultRow
                 key={segment.segment_id}
                 segment={segment}
                 rank={idx + 1}
-                videoName={videoMap.get(segment.video_id) || "Video"}
+                videoName={segment.video_name || videoMap.get(segment.video_id) || "Video Footage"}
                 query={query}
               />
             ))}
@@ -287,14 +369,14 @@ function SearchContent() {
         </div>
       )}
 
-      {/* Empty Results State */}
+      {/* 9. Empty Results State */}
       {!loading && query && results.length === 0 && !error && (
-        <div className="py-12 text-center space-y-2">
+        <div className="py-12 text-center space-y-2 border border-dashed border-border-default rounded-md bg-surface p-6">
           <div className="font-semibold text-txt-primary text-sm">
-            No matches for “{query}”
+            No matches found for “{query}”
           </div>
           <div className="text-xs text-txt-secondary max-w-md mx-auto">
-            Try describing the scene differently, or check if object class filters are applied.
+            Try adjusting your search terms, switching the target video scope to &ldquo;All Videos&rdquo;, or loosening your class filters.
           </div>
         </div>
       )}

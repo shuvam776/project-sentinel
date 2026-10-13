@@ -3,7 +3,7 @@ from app.schemas.detection import DetectionResponse
 
 
 class SearchRequest(BaseModel):
-    video_id: str = Field(..., description="Target video to search")
+    video_id: str | None = Field(default=None, description="Target video to search. If None or empty, searches across all completed videos")
     query: str = Field(..., min_length=1, description="Natural language search query")
     filter_classes: list[str] | None = Field(default=None, description="Optional COCO object classes to filter")
     min_score: float = Field(default=0.18, ge=0.0, le=1.0, description="Minimum cosine similarity threshold")
@@ -14,6 +14,7 @@ class SearchRequest(BaseModel):
 class SearchResultSegment(BaseModel):
     segment_id: str
     video_id: str
+    video_name: str | None = None
     start_time: float
     end_time: float
     duration: float
@@ -25,11 +26,12 @@ class SearchResultSegment(BaseModel):
     clip_url: str | None = None
     detected_objects: list[str] = []
     detections: list[DetectionResponse] = []
+    class_match_count: int = 0
 
 
 class SearchResponse(BaseModel):
     query: str
-    video_id: str
+    video_id: str | None = None
     total_segments: int
     segments: list[SearchResultSegment]
     disclaimer: str = (

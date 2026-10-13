@@ -28,24 +28,27 @@ def search_video(
     """Executes semantic natural-language search over sampled video frames.
 
     Optionally filters by confirmed COCO object detections.
-    Ranks matching frames using cosine similarity and clusters them into temporal segments.
+    Ranks matching frames using cosine similarity with class-frequency density weighting,
+    and clusters them into temporal segments. Supports searching single video or entire library.
     """
-    video = db.query(Video).filter(Video.id == request_data.video_id).first()
-    if not video:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Video not found")
+    # 1. Determine target video scope
+    if request_data.video_id and request_data.video_id.strip() and request_data.video_id.lower() != "all":
+        video = db.query(Video).filter(Video.id == request_data.video_id.strip()).first()
+        if not video:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Video not found")
+        if video.status != "completed":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Video processing status is '{video.status}'. Search is only available once indexing is 'completed'.",
+            )
+        target_videos = [video]
+    else:
+        target_videos = db.query(Video).filter(Video.status == "completed").all()
 
-    if video.status != "completed":
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Video processing status is '{video.status}'. Search is only available once indexing is 'completed'.",
-        )
-
-    # 1. Fetch all frames with embeddings for this video
-    frames = db.query(Frame).filter(Frame.video_id == video.id).order_by(Frame.timestamp.asc()).all()
-    if not frames:
+    if not target_videos:
         return SearchResponse(
             query=request_data.query,
-            video_id=video.id,
+            video_id=request_data.video_id or "all",
             total_segments=0,
             segments=[],
         )
@@ -54,126 +57,154 @@ def search_video(
     embedder = get_embedder()
     query_vector = embedder.embed_text(request_data.query)
 
-    # 3. Stack frame embeddings and compute cosine similarity
-    valid_frames: list[Frame] = []
-    vector_list: list[np.ndarray] = []
-
-    for f in frames:
-        vec = deserialize_embedding(f.embedding)
-        if vec is not None and vec.shape[0] == 512:
-            valid_frames.append(f)
-            vector_list.append(vec)
-
-    if not vector_list:
-        return SearchResponse(
-            query=request_data.query,
-            video_id=video.id,
-            total_segments=0,
-            segments=[],
-        )
-
-    target_matrix = np.vstack(vector_list)  # (N, 512)
-    scores = compute_cosine_similarity(query_vector, target_matrix)  # (N,)
-
-    # 4. Fetch detections for this video to support class filtering and metadata enrichment
-    all_detections = db.query(Detection).filter(Detection.video_id == video.id).all()
-    detections_by_frame: dict[str, list[Detection]] = {}
-    for d in all_detections:
-        detections_by_frame.setdefault(d.frame_id, []).append(d)
-
-    # 5. Filter frames by minimum score and optional class filter
     filter_classes_set = set(c.lower() for c in request_data.filter_classes) if request_data.filter_classes else None
+    query_lower = request_data.query.lower()
 
-    candidate_frame_matches: list[FrameMatch] = []
-    base_url = str(req.base_url).rstrip("/")
+    all_result_segments: list[SearchResultSegment] = []
 
-    for i, frame in enumerate(valid_frames):
-        score = float(scores[i])
-        if score < request_data.min_score:
+    for video in target_videos:
+        # Fetch all frames with embeddings for this video
+        frames = db.query(Frame).filter(Frame.video_id == video.id).order_by(Frame.timestamp.asc()).all()
+        if not frames:
             continue
 
-        frame_dets = detections_by_frame.get(frame.id, [])
-        frame_classes = [d.class_name.lower() for d in frame_dets]
+        # Stack frame embeddings and compute cosine similarity
+        valid_frames: list[Frame] = []
+        vector_list: list[np.ndarray] = []
 
-        # Apply class filter if specified
-        if filter_classes_set is not None:
-            if not any(fc in filter_classes_set for fc in frame_classes):
+        for f in frames:
+            vec = deserialize_embedding(f.embedding)
+            if vec is not None and vec.shape[0] == 512:
+                valid_frames.append(f)
+                vector_list.append(vec)
+
+        if not vector_list:
+            continue
+
+        target_matrix = np.vstack(vector_list)  # (N, 512)
+        scores = compute_cosine_similarity(query_vector, target_matrix)  # (N,)
+
+        # Fetch detections for this video
+        all_detections = db.query(Detection).filter(Detection.video_id == video.id).all()
+        detections_by_frame: dict[str, list[Detection]] = {}
+        for d in all_detections:
+            detections_by_frame.setdefault(d.frame_id, []).append(d)
+
+        candidate_frame_matches: list[FrameMatch] = []
+
+        for i, frame in enumerate(valid_frames):
+            base_score = float(scores[i])
+            frame_dets = detections_by_frame.get(frame.id, [])
+            frame_classes = [d.class_name.lower() for d in frame_dets]
+
+            # Apply class filter if specified
+            if filter_classes_set is not None:
+                if not any(fc in filter_classes_set for fc in frame_classes):
+                    continue
+
+            # Count relevant detections matching filter classes or query words
+            matching_dets = [
+                d for d in frame_dets
+                if (filter_classes_set and d.class_name.lower() in filter_classes_set)
+                or (d.class_name.lower() in query_lower)
+            ]
+            match_count = len(matching_dets)
+
+            # Frequency density boost: frames with MORE detections of the target class get prioritized
+            if match_count > 0:
+                boost = 1.0 + min(0.40, 0.10 * match_count)
+                score = base_score * boost
+            else:
+                score = base_score
+
+            if score < request_data.min_score:
                 continue
 
-        # Format image preview URL (relative so client resolves to current origin)
-        img_url = f"{settings.API_V1_STR}/search/frames/{frame.id}/image" if frame.image_path else None
+            img_url = f"{settings.API_V1_STR}/search/frames/{frame.id}/image" if frame.image_path else None
 
-        candidate_frame_matches.append(
-            FrameMatch(
-                timestamp=frame.timestamp,
-                score=score,
-                frame_index=frame.frame_index,
-                image_path=img_url,
-                detected_classes=frame_classes,
-            )
-        )
-
-    # 6. Temporal Grouping into non-overlapping segments
-    grouper = TemporalGrouper(
-        temporal_gap=request_data.temporal_gap,
-        clip_padding=request_data.clip_padding,
-    )
-    segments = grouper.group_frames(
-        candidate_frame_matches,
-        video_duration=video.duration_seconds or 0.0,
-    )
-
-    # 7. Convert to response schemas with associated bounding box detections
-    result_segments: list[SearchResultSegment] = []
-    for s in segments:
-        # Find keyframe detections
-        best_frame_dets: list[DetectionResponse] = []
-        # Find frame closest to best_timestamp
-        closest_frame = min(valid_frames, key=lambda f: abs(f.timestamp - s.best_timestamp), default=None)
-        if closest_frame:
-            frame_dets = detections_by_frame.get(closest_frame.id, [])
-            for d in frame_dets:
-                best_frame_dets.append(
-                    DetectionResponse(
-                        id=d.id,
-                        video_id=d.video_id,
-                        frame_id=d.frame_id,
-                        timestamp=d.timestamp,
-                        class_name=d.class_name,
-                        class_id=d.class_id,
-                        confidence=d.confidence,
-                        box=BoundingBox(
-                            x1=d.box_x1,
-                            y1=d.box_y1,
-                            x2=d.box_x2,
-                            y2=d.box_y2,
-                        ),
-                    )
+            candidate_frame_matches.append(
+                FrameMatch(
+                    timestamp=frame.timestamp,
+                    score=score,
+                    frame_index=frame.frame_index,
+                    image_path=img_url,
+                    detected_classes=frame_classes,
                 )
-
-        clip_url = f"{settings.API_V1_STR}/clips/{video.id}?start={s.start_time}&end={s.end_time}"
-
-        result_segments.append(
-            SearchResultSegment(
-                segment_id=s.segment_id,
-                video_id=video.id,
-                start_time=s.start_time,
-                end_time=s.end_time,
-                duration=s.duration,
-                best_timestamp=s.best_timestamp,
-                best_score=s.best_score,
-                thumbnail_url=s.image_path,
-                clip_url=clip_url,
-                detected_objects=s.detected_classes,
-                detections=best_frame_dets,
             )
+
+        if not candidate_frame_matches:
+            continue
+
+        # Temporal Grouping into non-overlapping segments
+        grouper = TemporalGrouper(
+            temporal_gap=request_data.temporal_gap,
+            clip_padding=request_data.clip_padding,
         )
+        segments = grouper.group_frames(
+            candidate_frame_matches,
+            video_duration=video.duration_seconds or 0.0,
+        )
+
+        for s in segments:
+            # Find keyframe detections
+            best_frame_dets: list[DetectionResponse] = []
+            closest_frame = min(valid_frames, key=lambda f: abs(f.timestamp - s.best_timestamp), default=None)
+            seg_match_count = 0
+
+            if closest_frame:
+                frame_dets = detections_by_frame.get(closest_frame.id, [])
+                for d in frame_dets:
+                    best_frame_dets.append(
+                        DetectionResponse(
+                            id=d.id,
+                            video_id=d.video_id,
+                            frame_id=d.frame_id,
+                            timestamp=d.timestamp,
+                            class_name=d.class_name,
+                            class_id=d.class_id,
+                            confidence=d.confidence,
+                            box=BoundingBox(
+                                x1=d.box_x1,
+                                y1=d.box_y1,
+                                x2=d.box_x2,
+                                y2=d.box_y2,
+                            ),
+                        )
+                    )
+                    if (filter_classes_set and d.class_name.lower() in filter_classes_set) or (d.class_name.lower() in query_lower):
+                        seg_match_count += 1
+
+            clip_url = f"{settings.API_V1_STR}/clips/{video.id}?start={s.start_time}&end={s.end_time}"
+
+            all_result_segments.append(
+                SearchResultSegment(
+                    segment_id=s.segment_id,
+                    video_id=video.id,
+                    video_name=video.original_filename,
+                    start_time=s.start_time,
+                    end_time=s.end_time,
+                    duration=s.duration,
+                    best_timestamp=s.best_timestamp,
+                    best_score=round(s.best_score, 4),
+                    thumbnail_url=s.image_path,
+                    clip_url=clip_url,
+                    detected_objects=s.detected_classes,
+                    detections=best_frame_dets,
+                    class_match_count=seg_match_count,
+                )
+            )
+
+    # Sort results: prioritize segments with higher class match density first, then highest score
+    all_result_segments.sort(
+        key=lambda s: (s.class_match_count, s.best_score),
+        reverse=True,
+    )
 
     return SearchResponse(
         query=request_data.query,
-        video_id=video.id,
-        total_segments=len(result_segments),
-        segments=result_segments,
+        video_id=request_data.video_id or "all",
+        total_segments=len(all_result_segments),
+        segments=all_result_segments,
     )
 
 

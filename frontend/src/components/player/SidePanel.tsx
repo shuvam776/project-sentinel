@@ -16,6 +16,7 @@ import {
   Pencil,
   Check,
   X,
+  ChevronDown,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { useRouter } from "next/navigation";
@@ -76,6 +77,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({
   const router = useRouter();
   const [tab, setTab] = useState<"matches" | "detections" | "info">(activeTab);
   const [localSelectedClasses, setLocalSelectedClasses] = useState<string[]>([]);
+  const [showClassFilter, setShowClassFilter] = useState(false);
   const [isGeneratingDownload, setIsGeneratingDownload] = useState(false);
   const [downloadingClass, setDownloadingClass] = useState<string | null>(null);
 
@@ -457,15 +459,41 @@ export const SidePanel: React.FC<SidePanelProps> = ({
         {/* Detections Tab */}
         {tab === "detections" && (
           <div className="space-y-3">
-            {/* Class Filter Checkboxes with 1-click 'Only' and Direct Class Download */}
+            {/* Collapsible Class Filter Accordion */}
             {supportedClasses.length > 0 && (
-              <ClassFilter
-                classes={supportedClasses}
-                selectedClasses={activeClasses}
-                onChange={handleClassesChange}
-                counts={classCounts}
-                onDownloadClass={handleDownloadSingleClass}
-              />
+              <div className="border border-border-default rounded-sm bg-surface-inset overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => setShowClassFilter(!showClassFilter)}
+                  className="w-full px-2.5 py-1.5 flex items-center justify-between text-xs font-medium text-txt-secondary hover:text-txt-primary hover:bg-surface-raised transition-colors cursor-pointer select-none"
+                >
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <SlidersHorizontal className="w-3.5 h-3.5 text-accent shrink-0" />
+                    <span>Filter Classes</span>
+                    <span className="text-[10px] text-txt-tertiary font-mono">
+                      ({activeClasses.length}/{supportedClasses.length})
+                    </span>
+                  </div>
+                  <ChevronDown
+                    className={clsx(
+                      "w-3.5 h-3.5 text-txt-tertiary transition-transform duration-150 shrink-0",
+                      showClassFilter && "rotate-180"
+                    )}
+                  />
+                </button>
+
+                {showClassFilter && (
+                  <div className="p-2 border-t border-border-subtle bg-surface animate-in fade-in duration-100">
+                    <ClassFilter
+                      classes={supportedClasses}
+                      selectedClasses={activeClasses}
+                      onChange={handleClassesChange}
+                      counts={classCounts}
+                      onDownloadClass={handleDownloadSingleClass}
+                    />
+                  </div>
+                )}
+              </div>
             )}
 
             {/* Sub-header: Timestamps vs Current Frame vs All Segmented Control */}

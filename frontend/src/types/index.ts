@@ -47,6 +47,7 @@ export interface VideoListResponse {
 export interface SearchResultSegment {
   segment_id: string;
   video_id: string;
+  video_name?: string | null;
   start_time: number;
   end_time: number;
   duration: number;
@@ -58,6 +59,7 @@ export interface SearchResultSegment {
   clip_url: string | null;
   detected_objects: string[];
   detections: Detection[];
+  class_match_count?: number;
 }
 
 export interface SearchResponse {

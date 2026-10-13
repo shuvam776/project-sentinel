@@ -72,11 +72,16 @@ export const ResultRow: React.FC<ResultRowProps> = ({
               href={linkHref}
               className="font-medium text-txt-primary hover:text-accent truncate max-w-[280px] transition-colors"
             >
-              {videoName}
+              {videoName || segment.video_name || "Video"}
             </Link>
             <span className="font-mono text-txt-secondary text-xs">
               {formatTimeRange(segment.start_time, segment.end_time)}
             </span>
+            {segment.class_match_count && segment.class_match_count > 0 ? (
+              <span className="px-1.5 py-0.2 rounded-xs bg-amber-500/15 border border-amber-500/40 text-amber-700 dark:text-amber-400 font-semibold text-[10px]">
+                {segment.class_match_count} class match{segment.class_match_count > 1 ? "es" : ""}
+              </span>
+            ) : null}
           </div>
 
           {/* Line 2: Evidence Lines */}
