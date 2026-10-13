@@ -20,6 +20,7 @@ import {
   Minus,
   Plus,
   Check,
+  Sparkles,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { formatTimestamp } from "@/lib/format";
@@ -212,6 +213,23 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
             <Tag className={clsx("w-3.5 h-3.5", showLabels ? "text-amber-600 dark:text-amber-400 stroke-[2.2]" : "text-txt-tertiary")} />
             <span className="hidden sm:inline">Labels</span>
           </button>
+
+          {onToggleAnnotatedMode && (
+            <button
+              onClick={onToggleAnnotatedMode}
+              aria-pressed={useAnnotatedStream}
+              className={clsx(
+                "h-7 px-2 rounded-sm flex items-center gap-1 transition-all text-xs font-medium cursor-pointer",
+                useAnnotatedStream
+                  ? "bg-amber-500 text-stone-950 font-semibold shadow-xs"
+                  : "text-txt-secondary hover:text-txt-primary hover:bg-surface-raised border border-transparent"
+              )}
+              title="Toggle burned-in annotated video stream (exact same video as download)"
+            >
+              <Sparkles className={clsx("w-3.5 h-3.5", useAnnotatedStream ? "text-stone-950 stroke-[2.2]" : "text-txt-tertiary")} />
+              <span className="hidden sm:inline">Burned-in</span>
+            </button>
+          )}
         </div>
 
         {/* YouTube-style Playback Speed Controller (Decreaser [-], Value, Increaser [+]) */}

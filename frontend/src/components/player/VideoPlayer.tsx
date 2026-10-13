@@ -484,7 +484,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
     const maxWindow = Math.max(1.2, 1.2 / (video.sample_rate || 1.0));
     if (closestTime !== undefined && minDiff <= maxWindow) {
-      currentDetections = effectiveDetections.filter((d) => d.timestamp === closestTime);
+      currentDetections = effectiveDetections.filter((d) => Math.abs(d.timestamp - closestTime) < 0.1);
     }
 
     // Ensure selected detection is present in currentDetections when currentTime is nearby
@@ -645,8 +645,8 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
             detections={currentDetections}
             selectedId={selectedDetectionId}
             onSelectDetection={onSelectDetection}
-            showBoxes={showBoxes}
-            showLabels={showBoxes && showLabels}
+            showBoxes={!useAnnotatedStream && showBoxes}
+            showLabels={!useAnnotatedStream && showBoxes && showLabels}
           />
 
           {/* Stage Semantic Match Chip (§8C top-right of stage) */}
