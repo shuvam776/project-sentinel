@@ -31,7 +31,7 @@ const nextConfig = {
       process.env.BACKEND_URL ||
       process.env.API_URL ||
       process.env.SERVER_URL ||
-      "http://127.0.0.1:8000";
+      (process.env.NODE_ENV === "production" ? "http://backend:8000" : "http://127.0.0.1:8000");
     const backendRoot = rawApi.replace(/\/api\/v1\/?$/, "").replace(/\/+$/, "");
     return [
       {

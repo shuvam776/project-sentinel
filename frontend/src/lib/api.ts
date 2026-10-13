@@ -2,9 +2,14 @@ import { VideoItem, VideoListResponse, SearchResponse, Detection, HealthInfo } f
 
 const API_BASE = (
   process.env.SENTINEL_BACKEND_URL ||
+  process.env.BACKEND_URL ||
   process.env.API_URL ||
-  (typeof window !== "undefined" ? "/api/v1" : "http://127.0.0.1:8000/api/v1")
-).replace(/\/api\/v1\/?$/, "").replace(/\/+$/, "") + (typeof window !== "undefined" && !process.env.SENTINEL_BACKEND_URL && !process.env.API_URL ? "/api/v1" : "/api/v1");
+  (typeof window !== "undefined"
+    ? "/api/v1"
+    : process.env.NODE_ENV === "production"
+      ? "http://backend:8000/api/v1"
+      : "http://127.0.0.1:8000/api/v1")
+).replace(/\/api\/v1\/?$/, "").replace(/\/+$/, "") + (typeof window !== "undefined" && !process.env.SENTINEL_BACKEND_URL && !process.env.BACKEND_URL && !process.env.API_URL ? "/api/v1" : "/api/v1");
 const HEALTH_URL = (
   process.env.HEALTH_URL ||
   (typeof window !== "undefined" ? "/health" : API_BASE.replace(/\/api\/v1\/?$/, "/health"))
