@@ -44,6 +44,9 @@ interface SidePanelProps {
   onRenameVideo?: (newName: string) => Promise<void>;
   onDeleteVideo?: () => void;
   onOpenSizeComparison?: () => void;
+  isMobileDrawer?: boolean;
+  onCloseMobile?: () => void;
+  onToggleCollapse?: () => void;
   className?: string;
 }
 
@@ -65,6 +68,9 @@ export const SidePanel: React.FC<SidePanelProps> = ({
   onRenameVideo,
   onDeleteVideo,
   onOpenSizeComparison,
+  isMobileDrawer = false,
+  onCloseMobile,
+  onToggleCollapse,
   className = "",
 }) => {
   const router = useRouter();
@@ -284,62 +290,81 @@ export const SidePanel: React.FC<SidePanelProps> = ({
 
   return (
     <aside
-      style={{ width: `${panelWidth}px` }}
+      style={isMobileDrawer ? { width: "100%" } : { width: `${panelWidth}px` }}
       className={clsx(
-        "relative bg-surface border-l border-border-default flex flex-col h-full select-none z-10 flex-shrink-0 transition-[width] duration-75",
+        isMobileDrawer
+          ? "relative bg-surface flex flex-col h-full select-none z-10 w-full overflow-hidden"
+          : "relative bg-surface border-l border-border-default flex flex-col h-full select-none z-10 flex-shrink-0 transition-[width] duration-75",
         className
       )}
     >
-      {/* 4px Resizable Drag Handle on Left Edge (§8C) */}
-      <div
-        role="separator"
-        aria-orientation="vertical"
-        aria-label="Resize side panel"
-        onMouseDown={handleMouseDown}
-        className="absolute -left-1.5 top-0 bottom-0 w-3 cursor-col-resize z-30 group flex items-center justify-center"
-      >
-        <div className="w-[3px] h-12 rounded-full bg-border-strong group-hover:bg-accent transition-colors" />
-      </div>
+      {/* 4px Resizable Drag Handle on Left Edge (Desktop only) */}
+      {!isMobileDrawer && (
+        <div
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Resize side panel"
+          onMouseDown={handleMouseDown}
+          className="absolute -left-1.5 top-0 bottom-0 w-3 cursor-col-resize z-30 group flex items-center justify-center"
+        >
+          <div className="w-[3px] h-12 rounded-full bg-border-strong group-hover:bg-accent transition-colors" />
+        </div>
+      )}
 
       {/* Header Tabs (40px) */}
-      <div className="h-[40px] border-b border-border-subtle flex items-center px-2 bg-chrome gap-1">
-        {matches.length > 0 && (
+      <div className="h-[40px] border-b border-border-subtle flex items-center justify-between px-2 bg-chrome gap-1">
+        <div className="flex items-center gap-1 h-full min-w-0">
+          {matches.length > 0 && (
+            <button
+              onClick={() => handleTabClick("matches")}
+              className={clsx(
+                "h-full px-2 sm:px-3 text-xs font-medium relative transition-colors",
+                tab === "matches"
+                  ? "text-txt-primary border-b-2 border-accent"
+                  : "text-txt-secondary hover:text-txt-primary"
+              )}
+            >
+              Matches ({matches.length})
+            </button>
+          )}
+
           <button
-            onClick={() => handleTabClick("matches")}
+            onClick={() => handleTabClick("detections")}
             className={clsx(
-              "h-full px-3 text-xs font-medium relative transition-colors",
-              tab === "matches"
+              "h-full px-2 sm:px-3 text-xs font-medium relative transition-colors",
+              tab === "detections"
                 ? "text-txt-primary border-b-2 border-accent"
                 : "text-txt-secondary hover:text-txt-primary"
             )}
           >
-            Matches ({matches.length})
+            Detections ({filteredDetections.length})
+          </button>
+
+          <button
+            onClick={() => handleTabClick("info")}
+            className={clsx(
+              "h-full px-2 sm:px-3 text-xs font-medium relative transition-colors",
+              tab === "info"
+                ? "text-txt-primary border-b-2 border-accent"
+                : "text-txt-secondary hover:text-txt-primary"
+            )}
+          >
+            Info & Export
+          </button>
+        </div>
+
+        {/* Minimize / Close button */}
+        {(onCloseMobile || onToggleCollapse) && (
+          <button
+            type="button"
+            onClick={onCloseMobile || onToggleCollapse}
+            className="p-1.5 rounded-sm text-txt-secondary hover:text-txt-primary hover:bg-surface-raised transition-colors shrink-0 ml-auto"
+            title="Minimize panel"
+            aria-label="Minimize panel"
+          >
+            <X className="w-4 h-4" />
           </button>
         )}
-
-        <button
-          onClick={() => handleTabClick("detections")}
-          className={clsx(
-            "h-full px-3 text-xs font-medium relative transition-colors",
-            tab === "detections"
-              ? "text-txt-primary border-b-2 border-accent"
-              : "text-txt-secondary hover:text-txt-primary"
-          )}
-        >
-          Detections ({filteredDetections.length})
-        </button>
-
-        <button
-          onClick={() => handleTabClick("info")}
-          className={clsx(
-            "h-full px-3 text-xs font-medium relative transition-colors",
-            tab === "info"
-              ? "text-txt-primary border-b-2 border-accent"
-              : "text-txt-secondary hover:text-txt-primary"
-          )}
-        >
-          Info & Export
-        </button>
       </div>
 
       {/* Tab Contents */}

@@ -26,7 +26,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ hasProcessingVideos = false })
 
   return (
     <aside
-      className="w-[var(--sidebar-w)] bg-surface border-r border-border-default flex flex-col justify-between h-full flex-shrink-0 z-30 transition-[width] duration-base overflow-hidden"
+      className="hidden md:flex w-[var(--sidebar-w)] bg-surface border-r border-border-default flex-col justify-between h-full flex-shrink-0 z-30 transition-[width] duration-base overflow-hidden"
     >
       {/* Top Header / Brand */}
       <div>

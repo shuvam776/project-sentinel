@@ -528,7 +528,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       {/* Video Stage Arena */}
       <div
         className={clsx(
-          "relative flex-1 flex items-center justify-center overflow-hidden min-h-[300px] transition-colors",
+          "relative flex-1 flex items-center justify-center overflow-hidden min-h-[160px] sm:min-h-[280px] transition-colors",
           playerTheme === "dark" ? "bg-black" : "bg-stone-100/90 p-2 sm:p-4"
         )}
       >

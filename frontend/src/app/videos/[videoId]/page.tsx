@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useCallback, Suspense, useRef } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
-import { Search, MoreVertical, Download, Square, Trash2, Keyboard, Pencil, Check, X, Loader2, SlidersHorizontal } from "lucide-react";
+import { Search, MoreVertical, Download, Square, Trash2, Keyboard, Pencil, Check, X, Loader2, SlidersHorizontal, Layers, ChevronUp, ChevronLeft } from "lucide-react";
 import AppShell from "@/components/shell/AppShell";
 import Header from "@/components/shell/Header";
 import VideoPlayer from "@/components/player/VideoPlayer";
@@ -39,6 +39,8 @@ function VideoDetailContent() {
   const [renameModalOpen, setRenameModalOpen] = useState(false);
   const [renameInput, setRenameInput] = useState("");
   const [isSavingRename, setIsSavingRename] = useState(false);
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+  const [desktopSidePanelCollapsed, setDesktopSidePanelCollapsed] = useState(false);
   const headerMenuRef = useRef<HTMLDivElement>(null);
 
   // Close overflow menu on outside click
@@ -190,20 +192,20 @@ function VideoDetailContent() {
     <div className="flex items-center gap-2">
       <button
         onClick={() => setSizeComparisonModalOpen(true)}
-        className="h-8 px-2.5 rounded-sm bg-surface border border-border-default hover:border-amber-400 hover:bg-amber-50/50 text-txt-primary flex items-center gap-1.5 text-xs font-medium transition-colors shadow-xs"
+        className="hidden md:flex h-8 px-2.5 rounded-sm bg-surface border border-border-default hover:border-amber-400 hover:bg-amber-50/50 text-txt-primary items-center gap-1.5 text-xs font-medium transition-colors shadow-xs"
         title="Compare annotated video sizes, bounding box delta shifts, and storage savings per class"
       >
         <SlidersHorizontal className="w-3.5 h-3.5 text-amber-600" />
-        <span className="hidden sm:inline">Size & Storage Analyzer</span>
+        <span>Size & Storage Analyzer</span>
       </button>
 
       <button
         onClick={() => router.push(`/search?video=${video.id}`)}
-        className="h-8 px-2.5 rounded-sm bg-surface border border-border-default hover:border-border-strong text-txt-primary flex items-center gap-1.5 text-xs font-medium transition-colors shadow-xs"
+        className="hidden md:flex h-8 px-2.5 rounded-sm bg-surface border border-border-default hover:border-border-strong text-txt-primary items-center gap-1.5 text-xs font-medium transition-colors shadow-xs"
         title="Search within this video"
       >
         <Search className="w-3.5 h-3.5 text-accent" />
-        <span className="hidden sm:inline">Search Video</span>
+        <span>Search Video</span>
       </button>
 
       {/* Overflow Menu (…) */}
@@ -319,43 +321,144 @@ function VideoDetailContent() {
         ) : (
           <>
             {/* Player Main Area */}
-            <VideoPlayer
-              video={video}
-              initialTime={urlTimestamp}
-              matches={matches}
-              detections={detections}
-              selectedClasses={effectiveSelectedClasses}
-              downloadAnnotatedUrl={downloadAnnotatedUrl}
-              selectedSegmentId={selectedSegmentId}
-              selectedDetectionId={selectedDetectionId}
-              onTimeUpdate={(t) => setCurrentTime(t)}
-              onSelectMatch={(m) => setSelectedSegmentId(m ? m.segment_id : null)}
-              onSelectDetection={(d) => setSelectedDetectionId(d ? d.id : null)}
-              downloadClipUrl={downloadClipUrl}
-            />
+            <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
+              <VideoPlayer
+                video={video}
+                initialTime={urlTimestamp}
+                matches={matches}
+                detections={detections}
+                selectedClasses={effectiveSelectedClasses}
+                downloadAnnotatedUrl={downloadAnnotatedUrl}
+                selectedSegmentId={selectedSegmentId}
+                selectedDetectionId={selectedDetectionId}
+                onTimeUpdate={(t) => setCurrentTime(t)}
+                onSelectMatch={(m) => setSelectedSegmentId(m ? m.segment_id : null)}
+                onSelectDetection={(d) => setSelectedDetectionId(d ? d.id : null)}
+                downloadClipUrl={downloadClipUrl}
+              />
+            </div>
 
-            {/* Side Panel */}
-            <SidePanel
-              video={video}
-              matches={matches}
-              detections={detections}
-              currentTime={currentTime}
-              selectedClasses={effectiveSelectedClasses}
-              onSelectClasses={handleUpdateSelectedClasses}
-              downloadAnnotatedUrl={downloadAnnotatedUrl}
-              activeTab={urlQuery && matches.length > 0 ? "matches" : "detections"}
-              selectedSegmentId={selectedSegmentId}
-              selectedDetectionId={selectedDetectionId}
-              onSelectSegment={(m) => setSelectedSegmentId(m ? m.segment_id : null)}
-              onSelectDetection={(d) => setSelectedDetectionId(d ? d.id : null)}
-              onSeek={(time) => {
-                const vidElem = document.querySelector("video");
-                if (vidElem) vidElem.currentTime = time;
-              }}
-              onRenameVideo={handleRenameVideo}
-              onDeleteVideo={handleDeleteVideo}
-              onOpenSizeComparison={() => setSizeComparisonModalOpen(true)}
-            />
+            {/* Mobile Minimized Floating Pill Trigger (Only on phone/tablet < lg) */}
+            <button
+              type="button"
+              onClick={() => setMobileDrawerOpen(true)}
+              className="lg:hidden fixed bottom-28 right-3.5 z-30 flex items-center gap-2 px-3 py-2 rounded-full bg-surface border border-border-strong text-txt-primary shadow-float hover:bg-surface-raised active:scale-95 transition-all text-xs font-semibold cursor-pointer"
+              title="Open Detections, Info & Export panel"
+              aria-label="Open Detections, Info and Export panel"
+            >
+              <Layers className="w-4 h-4 text-accent" />
+              <span>Detections ({detections.length}) & Info</span>
+              <ChevronUp className="w-3.5 h-3.5 text-txt-secondary" />
+            </button>
+
+            {/* Mobile Drawer (Bottom Sheet Overlay) */}
+            {mobileDrawerOpen && (
+              <div 
+                className="lg:hidden fixed inset-0 z-50 flex flex-col justify-end bg-black/60 backdrop-blur-xs animate-in fade-in duration-150"
+                onClick={() => setMobileDrawerOpen(false)}
+              >
+                <div 
+                  className="w-full bg-surface border-t border-border-default rounded-t-xl shadow-2xl flex flex-col h-[82vh] max-h-[85vh] overflow-hidden animate-in slide-in-from-bottom duration-200"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="w-full flex items-center justify-between px-3 py-2 border-b border-border-subtle bg-chrome shrink-0">
+                    <div className="flex items-center gap-2">
+                      <span className="w-8 h-1 rounded-full bg-border-strong block" />
+                      <span className="text-xs font-semibold text-txt-primary flex items-center gap-1.5 ml-1">
+                        <Layers className="w-3.5 h-3.5 text-accent" />
+                        Detections, Info & Export
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setMobileDrawerOpen(false)}
+                      className="p-1 rounded-sm text-txt-secondary hover:text-txt-primary hover:bg-surface-raised transition-colors cursor-pointer"
+                      aria-label="Close sidebar"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  <div className="flex-1 min-h-0 overflow-hidden">
+                    <SidePanel
+                      video={video}
+                      matches={matches}
+                      detections={detections}
+                      currentTime={currentTime}
+                      selectedClasses={effectiveSelectedClasses}
+                      onSelectClasses={handleUpdateSelectedClasses}
+                      downloadAnnotatedUrl={downloadAnnotatedUrl}
+                      activeTab={urlQuery && matches.length > 0 ? "matches" : "detections"}
+                      selectedSegmentId={selectedSegmentId}
+                      selectedDetectionId={selectedDetectionId}
+                      onSelectSegment={(m) => setSelectedSegmentId(m ? m.segment_id : null)}
+                      onSelectDetection={(d) => setSelectedDetectionId(d ? d.id : null)}
+                      onSeek={(time) => {
+                        const vidElem = document.querySelector("video");
+                        if (vidElem) vidElem.currentTime = time;
+                      }}
+                      onRenameVideo={handleRenameVideo}
+                      onDeleteVideo={handleDeleteVideo}
+                      onOpenSizeComparison={() => {
+                        setMobileDrawerOpen(false);
+                        setSizeComparisonModalOpen(true);
+                      }}
+                      isMobileDrawer={true}
+                      onCloseMobile={() => setMobileDrawerOpen(false)}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Desktop Side Panel (Collapsible) */}
+            {desktopSidePanelCollapsed ? (
+              <div className="hidden lg:flex flex-col items-center justify-start border-l border-border-default bg-surface py-3 px-1.5 w-10 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setDesktopSidePanelCollapsed(false)}
+                  className="p-1.5 rounded-sm text-txt-secondary hover:text-txt-primary hover:bg-surface-raised transition-colors cursor-pointer"
+                  title="Expand side panel"
+                  aria-label="Expand side panel"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDesktopSidePanelCollapsed(false)}
+                  className="mt-6 cursor-pointer [writing-mode:vertical-rl] rotate-180 text-[11px] font-medium text-txt-secondary hover:text-txt-primary tracking-wider uppercase flex items-center gap-1.5 py-2 select-none"
+                  title="Expand side panel"
+                >
+                  <Layers className="w-3.5 h-3.5 text-accent mb-1" />
+                  Detections & Info
+                </button>
+              </div>
+            ) : (
+              <div className="hidden lg:flex h-full shrink-0">
+                <SidePanel
+                  video={video}
+                  matches={matches}
+                  detections={detections}
+                  currentTime={currentTime}
+                  selectedClasses={effectiveSelectedClasses}
+                  onSelectClasses={handleUpdateSelectedClasses}
+                  downloadAnnotatedUrl={downloadAnnotatedUrl}
+                  activeTab={urlQuery && matches.length > 0 ? "matches" : "detections"}
+                  selectedSegmentId={selectedSegmentId}
+                  selectedDetectionId={selectedDetectionId}
+                  onSelectSegment={(m) => setSelectedSegmentId(m ? m.segment_id : null)}
+                  onSelectDetection={(d) => setSelectedDetectionId(d ? d.id : null)}
+                  onSeek={(time) => {
+                    const vidElem = document.querySelector("video");
+                    if (vidElem) vidElem.currentTime = time;
+                  }}
+                  onRenameVideo={handleRenameVideo}
+                  onDeleteVideo={handleDeleteVideo}
+                  onOpenSizeComparison={() => setSizeComparisonModalOpen(true)}
+                  onToggleCollapse={() => setDesktopSidePanelCollapsed(true)}
+                />
+              </div>
+            )}
           </>
         )}
       </div>

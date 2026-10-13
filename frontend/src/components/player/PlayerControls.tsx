@@ -295,8 +295,8 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
           </button>
         </div>
 
-        {/* Volume & Mute */}
-        <div className="flex items-center gap-1 border-r border-border-default pr-1.5 mr-0.5">
+        {/* Volume & Mute (hidden on mobile phones to prioritize playback & detection controls) */}
+        <div className="hidden sm:flex items-center gap-1 border-r border-border-default pr-1.5 mr-0.5">
           <button
             onClick={onToggleMute}
             className={clsx(
@@ -331,7 +331,7 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
             <button
               onClick={onToggleLoop}
               className={clsx(
-                "p-1 rounded-sm transition-colors cursor-pointer",
+                "hidden sm:inline-flex p-1 rounded-sm transition-colors cursor-pointer",
                 isLooping ? "text-amber-600 bg-amber-500/10" : "text-txt-secondary hover:text-txt-primary hover:bg-surface-raised"
               )}
               title={isLooping ? "Loop playback is ON" : "Turn on loop playback"}
@@ -343,7 +343,7 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
           {onCaptureSnapshot && (
             <button
               onClick={onCaptureSnapshot}
-              className="p-1 rounded-sm text-txt-secondary hover:text-txt-primary hover:bg-surface-raised transition-colors cursor-pointer"
+              className="hidden sm:inline-flex p-1 rounded-sm text-txt-secondary hover:text-txt-primary hover:bg-surface-raised transition-colors cursor-pointer"
               title="Capture Frame Snapshot (Download instant JPEG)"
             >
               <Camera className="w-3.5 h-3.5" />
@@ -353,7 +353,7 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
           {onTogglePiP && (
             <button
               onClick={onTogglePiP}
-              className="p-1 rounded-sm text-txt-secondary hover:text-txt-primary hover:bg-surface-raised transition-colors cursor-pointer"
+              className="hidden sm:inline-flex p-1 rounded-sm text-txt-secondary hover:text-txt-primary hover:bg-surface-raised transition-colors cursor-pointer"
               title="Picture in Picture (PiP)"
             >
               <PictureInPicture2 className="w-3.5 h-3.5" />

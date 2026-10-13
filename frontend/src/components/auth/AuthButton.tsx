@@ -69,7 +69,8 @@ export const AuthButton: React.FC<{ className?: string }> = ({ className = "" })
             />
           </svg>
         )}
-        <span className="font-semibold tracking-tight">Sign in with Google</span>
+        <span className="hidden sm:inline font-semibold tracking-tight">Sign in with Google</span>
+        <span className="sm:hidden font-semibold tracking-tight">Sign in</span>
       </button>
     );
   }
@@ -82,7 +83,7 @@ export const AuthButton: React.FC<{ className?: string }> = ({ className = "" })
       {/* Spacious, unclipped profile pill button */}
       <button
         onClick={() => setDropdownOpen(!dropdownOpen)}
-        className="group h-9 pl-1.5 pr-2.5 rounded-sm bg-white hover:bg-stone-50 active:bg-stone-100 text-stone-900 border border-stone-200 hover:border-stone-300 font-medium text-xs flex items-center gap-2.5 transition-all shadow-2xs select-none"
+        className="group h-9 pl-1.5 pr-2 sm:pr-2.5 rounded-sm bg-white hover:bg-stone-50 active:bg-stone-100 text-stone-900 border border-stone-200 hover:border-stone-300 font-medium text-xs flex items-center gap-1.5 sm:gap-2.5 transition-all shadow-2xs select-none"
         aria-label="User account menu"
         aria-expanded={dropdownOpen}
       >
@@ -101,7 +102,7 @@ export const AuthButton: React.FC<{ className?: string }> = ({ className = "" })
           )}
         </div>
 
-        <div className="flex flex-col text-left leading-tight pr-0.5">
+        <div className="hidden sm:flex flex-col text-left leading-tight pr-0.5">
           <span className="font-semibold text-stone-900 max-w-[130px] sm:max-w-[180px] truncate">
             {displayName}
           </span>
