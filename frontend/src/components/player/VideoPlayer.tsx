@@ -9,7 +9,7 @@ import Timeline from "./Timeline";
 import KeyboardShortcutsModal from "./KeyboardShortcutsModal";
 import { VideoItem, SearchResultSegment, Detection } from "@/types";
 import { formatScore, formatTimestamp } from "@/lib/format";
-import { getVideoStreamUrl, getVideoDownloadUrl } from "@/lib/api";
+import { getVideoStreamUrl, getVideoDownloadUrl, normalizeMediaUrl } from "@/lib/api";
 
 interface VideoPlayerProps {
   video: VideoItem;
@@ -475,9 +475,9 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     }
   }
 
-  const streamUrl = video.stream_url || getVideoStreamUrl(video.id);
+  const streamUrl = normalizeMediaUrl(video.stream_url) || getVideoStreamUrl(video.id);
   const annotatedStreamUrl =
-    video.annotated_stream_url ||
+    normalizeMediaUrl(video.annotated_stream_url) ||
     getVideoStreamUrl(video.id, {
       annotated: true,
       classes: selectedClasses && selectedClasses.length > 0 ? selectedClasses : undefined,
@@ -549,7 +549,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         >
           <video
             ref={videoRef}
-            src={streamUrl}
+            src={currentStreamSource}
             loop={isLooping}
             className={clsx(
               "w-full h-full object-contain select-none",

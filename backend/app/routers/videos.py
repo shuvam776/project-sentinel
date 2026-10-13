@@ -29,12 +29,13 @@ router = APIRouter(prefix="/videos", tags=["Videos"])
 
 
 def _to_video_response(video: Video, request: Request) -> VideoResponse:
-    base_url = str(request.base_url).rstrip("/")
-    thumb_url = video.cloudinary_thumbnail_url or (f"{base_url}{settings.API_V1_STR}/videos/{video.id}/thumbnail" if video.thumbnail_path else None)
-    stream_url = video.cloudinary_url or f"{base_url}{settings.API_V1_STR}/videos/{video.id}/stream"
-    annotated_stream_url = f"{base_url}{settings.API_V1_STR}/videos/{video.id}/stream_annotated"
-    download_url = video.cloudinary_url or f"{base_url}{settings.API_V1_STR}/videos/{video.id}/download"
-    annotated_download_url = f"{base_url}{settings.API_V1_STR}/videos/{video.id}/download_annotated"
+    # Return relative URLs for local media so any proxy (Next.js, Docker, Vercel)
+    # can stream seamlessly without internal hostname resolution errors in client browsers
+    thumb_url = video.cloudinary_thumbnail_url or (f"{settings.API_V1_STR}/videos/{video.id}/thumbnail" if video.thumbnail_path else None)
+    stream_url = video.cloudinary_url or f"{settings.API_V1_STR}/videos/{video.id}/stream"
+    annotated_stream_url = f"{settings.API_V1_STR}/videos/{video.id}/stream_annotated"
+    download_url = video.cloudinary_url or f"{settings.API_V1_STR}/videos/{video.id}/download"
+    annotated_download_url = f"{settings.API_V1_STR}/videos/{video.id}/download_annotated"
 
     return VideoResponse(
         id=video.id,

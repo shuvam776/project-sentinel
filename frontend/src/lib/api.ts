@@ -30,6 +30,31 @@ function getAuthHeaders(): Record<string, string> {
   return headers;
 }
 
+export function normalizeMediaUrl(url?: string | null): string | null {
+  if (!url) return null;
+  // External CDN (Cloudinary, S3, etc.) - keep unchanged
+  if (url.startsWith("http://res.cloudinary.com") || url.startsWith("https://res.cloudinary.com") || url.startsWith("https://")) {
+    return url;
+  }
+  // If the backend sent an internal container host or localhost URL, strip host and use client origin route
+  if (url.includes("backend:8000") || url.includes("127.0.0.1:8000") || url.includes("localhost:8000")) {
+    const match = url.match(/\/api\/v1\/.*/);
+    if (match) return match[0];
+  }
+  return url;
+}
+
+export function normalizeVideoItem(video: VideoItem): VideoItem {
+  return {
+    ...video,
+    stream_url: normalizeMediaUrl(video.stream_url) || getVideoStreamUrl(video.id),
+    annotated_stream_url: normalizeMediaUrl(video.annotated_stream_url) || undefined,
+    thumbnail_url: normalizeMediaUrl(video.thumbnail_url),
+    download_url: normalizeMediaUrl(video.download_url) || undefined,
+    annotated_download_url: normalizeMediaUrl(video.annotated_download_url) || undefined,
+  };
+}
+
 export async function fetchHealth(): Promise<HealthInfo> {
   const res = await fetch(HEALTH_URL, { cache: "no-store" });
   if (!res.ok) throw new Error("Backend service unreachable");
@@ -42,7 +67,11 @@ export async function fetchVideos(): Promise<VideoListResponse> {
     cache: "no-store",
   });
   if (!res.ok) throw new Error("Failed to fetch videos");
-  return res.json();
+  const data: VideoListResponse = await res.json();
+  return {
+    ...data,
+    videos: (data.videos || []).map(normalizeVideoItem),
+  };
 }
 
 export async function fetchVideo(id: string): Promise<VideoItem> {
@@ -51,7 +80,8 @@ export async function fetchVideo(id: string): Promise<VideoItem> {
     cache: "no-store",
   });
   if (!res.ok) throw new Error("Failed to fetch video details");
-  return res.json();
+  const data: VideoItem = await res.json();
+  return normalizeVideoItem(data);
 }
 
 export async function fetchVideoStatus(id: string): Promise<{

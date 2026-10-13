@@ -100,8 +100,8 @@ def search_video(
             if not any(fc in filter_classes_set for fc in frame_classes):
                 continue
 
-        # Format image preview URL
-        img_url = f"{base_url}{settings.API_V1_STR}/search/frames/{frame.id}/image" if frame.image_path else None
+        # Format image preview URL (relative so client resolves to current origin)
+        img_url = f"{settings.API_V1_STR}/search/frames/{frame.id}/image" if frame.image_path else None
 
         candidate_frame_matches.append(
             FrameMatch(
@@ -151,7 +151,7 @@ def search_video(
                     )
                 )
 
-        clip_url = f"{base_url}{settings.API_V1_STR}/clips/{video.id}?start={s.start_time}&end={s.end_time}"
+        clip_url = f"{settings.API_V1_STR}/clips/{video.id}?start={s.start_time}&end={s.end_time}"
 
         result_segments.append(
             SearchResultSegment(
