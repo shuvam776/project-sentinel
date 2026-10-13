@@ -23,7 +23,7 @@ class Detection(Base):
     box_x2 = Column(Float, nullable=False)
     box_y2 = Column(Float, nullable=False)
 
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
     video = relationship("Video", back_populates="detections")
     frame = relationship("Frame", back_populates="detections")

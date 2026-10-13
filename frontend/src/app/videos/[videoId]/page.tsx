@@ -141,11 +141,13 @@ function VideoDetailContent() {
       if (saved) {
         try {
           const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed)) {
+          if (Array.isArray(parsed) && parsed.length > 0) {
             const valid = parsed.filter((c) => allClassNames.includes(c));
-            setSelectedClasses(valid);
-            setClassesInitialized(true);
-            return;
+            if (valid.length > 0) {
+              setSelectedClasses(valid);
+              setClassesInitialized(true);
+              return;
+            }
           }
         } catch {}
       }
@@ -153,6 +155,9 @@ function VideoDetailContent() {
       setClassesInitialized(true);
     }
   }, [allClassNames, videoId, classesInitialized]);
+
+  const effectiveSelectedClasses =
+    selectedClasses.length > 0 ? selectedClasses : allClassNames;
 
   const handleUpdateSelectedClasses = (classes: string[]) => {
     setSelectedClasses(classes);
@@ -164,11 +169,11 @@ function VideoDetailContent() {
   };
 
   const isAllClasses =
-    allClassNames.length > 0 && selectedClasses.length === allClassNames.length;
+    allClassNames.length > 0 && effectiveSelectedClasses.length === allClassNames.length;
   const downloadAnnotatedUrl = video
     ? getVideoDownloadUrl(video.id, {
         annotated: true,
-        classes: !isAllClasses ? selectedClasses : undefined,
+        classes: !isAllClasses ? effectiveSelectedClasses : undefined,
       })
     : undefined;
   const downloadRawUrl = video
@@ -319,7 +324,7 @@ function VideoDetailContent() {
               initialTime={urlTimestamp}
               matches={matches}
               detections={detections}
-              selectedClasses={selectedClasses}
+              selectedClasses={effectiveSelectedClasses}
               downloadAnnotatedUrl={downloadAnnotatedUrl}
               selectedSegmentId={selectedSegmentId}
               selectedDetectionId={selectedDetectionId}
@@ -335,7 +340,7 @@ function VideoDetailContent() {
               matches={matches}
               detections={detections}
               currentTime={currentTime}
-              selectedClasses={selectedClasses}
+              selectedClasses={effectiveSelectedClasses}
               onSelectClasses={handleUpdateSelectedClasses}
               downloadAnnotatedUrl={downloadAnnotatedUrl}
               activeTab={urlQuery && matches.length > 0 ? "matches" : "detections"}
@@ -433,7 +438,7 @@ function VideoDetailContent() {
           onClose={() => setSizeComparisonModalOpen(false)}
           video={video}
           detections={detections}
-          selectedClasses={selectedClasses}
+          selectedClasses={effectiveSelectedClasses}
           onSelectClasses={handleUpdateSelectedClasses}
         />
       )}

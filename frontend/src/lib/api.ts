@@ -180,13 +180,15 @@ export async function searchVideo(params: {
 export async function fetchDetections(
   videoId: string,
   className?: string,
-  minConfidence: number = 0.20
+  minConfidence: number = 0.0
 ): Promise<Detection[]> {
-  const url = new URL(`${API_BASE}/search/detections/${videoId}`);
-  if (className) url.searchParams.set("class_name", className);
-  url.searchParams.set("min_confidence", minConfidence.toString());
+  const params = new URLSearchParams();
+  if (className) params.set("class_name", className);
+  if (minConfidence > 0) params.set("min_confidence", minConfidence.toString());
+  const queryString = params.toString() ? `?${params.toString()}` : "";
+  const url = `${API_BASE}/search/detections/${videoId}${queryString}`;
 
-  const res = await fetch(url.toString(), {
+  const res = await fetch(url, {
     headers: { ...getAuthHeaders() },
     cache: "no-store",
   });

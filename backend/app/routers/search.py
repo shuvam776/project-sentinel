@@ -193,11 +193,13 @@ def get_frame_image(
 def get_video_detections(
     video_id: str,
     class_name: str | None = Query(None, description="Filter by class name"),
-    min_confidence: float = Query(0.40, ge=0.0, le=1.0),
+    min_confidence: float = Query(0.0, ge=0.0, le=1.0),
     db: Session = Depends(get_db),
 ):
     """Retrieves all detections for a video with optional class and confidence filters."""
-    query = db.query(Detection).filter(Detection.video_id == video_id, Detection.confidence >= min_confidence)
+    query = db.query(Detection).filter(Detection.video_id == video_id)
+    if min_confidence > 0.0:
+        query = query.filter(Detection.confidence >= min_confidence)
     if class_name:
         query = query.filter(Detection.class_name.ilike(class_name))
 

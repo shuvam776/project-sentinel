@@ -34,8 +34,8 @@ class Video(Base):
     # User isolation (Google Firebase UID)
     user_id = Column(String(128), nullable=True, index=True)
 
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
-    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     # Cascade delete so deleting a video cleans up all derived frames and detections
     frames = relationship("Frame", back_populates="video", cascade="all, delete-orphan", passive_deletes=True)

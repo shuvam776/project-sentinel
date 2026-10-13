@@ -15,7 +15,7 @@ class Frame(Base):
     image_path = Column(String(500), nullable=True)
     embedding = Column(LargeBinary, nullable=True)  # Serialized float32 numpy vector (512-dim)
 
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
     video = relationship("Video", back_populates="frames")
     detections = relationship("Detection", back_populates="frame", cascade="all, delete-orphan", passive_deletes=True)

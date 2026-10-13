@@ -49,8 +49,20 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [currentTime, setCurrentTime] = useState(initialTime);
   const [duration, setDuration] = useState(video.duration_seconds || 0);
 
-  const [showBoxes, setShowBoxes] = useState(false);
-  const [showLabels, setShowLabels] = useState(false);
+  const [showBoxes, setShowBoxes] = useState(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("sentinel.show_boxes");
+      if (saved !== null) return saved === "true";
+    }
+    return true;
+  });
+  const [showLabels, setShowLabels] = useState(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("sentinel.show_labels");
+      if (saved !== null) return saved === "true";
+    }
+    return true;
+  });
   const [useAnnotatedStream, setUseAnnotatedStream] = useState(false);
   const [showShortcutsModal, setShowShortcutsModal] = useState(false);
 
@@ -104,8 +116,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   // Filter detections by user-selected classes
   const effectiveDetections = React.useMemo(() => {
     if (!detections || detections.length === 0) return [];
-    if (!selectedClasses) return detections;
-    if (selectedClasses.length === 0) return [];
+    if (!selectedClasses || selectedClasses.length === 0) return detections;
     return detections.filter((d) => selectedClasses.includes(d.class_name));
   }, [detections, selectedClasses]);
 
@@ -181,6 +192,9 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       if (!next) {
         setShowLabels(false);
       }
+      try {
+        localStorage.setItem("sentinel.show_boxes", next.toString());
+      } catch {}
       return next;
     });
   }, [selectedDetectionId, onSelectDetection]);
@@ -190,7 +204,13 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       const nextLabels = !prevLabels;
       if (nextLabels && !showBoxes) {
         setShowBoxes(true);
+        try {
+          localStorage.setItem("sentinel.show_boxes", "true");
+        } catch {}
       }
+      try {
+        localStorage.setItem("sentinel.show_labels", nextLabels.toString());
+      } catch {}
       return nextLabels;
     });
   }, [showBoxes]);

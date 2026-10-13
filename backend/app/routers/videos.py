@@ -1,6 +1,7 @@
 import os
 import shutil
 import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, BackgroundTasks, status, Query, Request
 from fastapi.responses import FileResponse, Response, StreamingResponse, RedirectResponse
@@ -37,6 +38,13 @@ def _to_video_response(video: Video, request: Request) -> VideoResponse:
     download_url = video.cloudinary_url or f"{settings.API_V1_STR}/videos/{video.id}/download"
     annotated_download_url = f"{settings.API_V1_STR}/videos/{video.id}/download_annotated"
 
+    c_at = video.created_at
+    if c_at and c_at.tzinfo is None:
+        c_at = c_at.replace(tzinfo=timezone.utc)
+    u_at = video.updated_at
+    if u_at and u_at.tzinfo is None:
+        u_at = u_at.replace(tzinfo=timezone.utc)
+
     return VideoResponse(
         id=video.id,
         original_filename=video.original_filename,
@@ -59,8 +67,8 @@ def _to_video_response(video: Video, request: Request) -> VideoResponse:
         cloudinary_url=video.cloudinary_url,
         cloudinary_public_id=video.cloudinary_public_id,
         cloudinary_thumbnail_url=video.cloudinary_thumbnail_url,
-        created_at=video.created_at,
-        updated_at=video.updated_at,
+        created_at=c_at,
+        updated_at=u_at,
     )
 
 
@@ -125,6 +133,8 @@ async def upload_video(
         status="queued",
         progress_percent=0,
         current_step="Queued for processing",
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
     )
     db.add(video)
     db.commit()

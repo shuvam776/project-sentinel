@@ -1,5 +1,6 @@
 import logging
 import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 import cv2
 from app.config import settings
@@ -120,6 +121,8 @@ def process_video_pipeline(video_id: str) -> None:
         batch_size = 5
         accumulated_frames: list[Frame] = []
         accumulated_detections: list[Detection] = []
+        total_frames_indexed = 0
+        total_detections_indexed = 0
 
         for sample_idx, timestamp, frame_bgr in VideoProcessor.sample_frames(video_path, sample_rate=video.sample_rate):
             # Save frame thumbnail for rapid preview in timeline
@@ -151,8 +154,10 @@ def process_video_pipeline(video_id: str) -> None:
                 timestamp=timestamp,
                 image_path=str(frame_img_path),
                 embedding=embedding_bytes,
+                created_at=datetime.now(timezone.utc),
             )
             accumulated_frames.append(frame_record)
+            total_frames_indexed += 1
 
             # Create Detection entities linked to this frame
             for det in detections:
@@ -167,8 +172,10 @@ def process_video_pipeline(video_id: str) -> None:
                     box_y1=det.box_y1,
                     box_x2=det.box_x2,
                     box_y2=det.box_y2,
+                    created_at=datetime.now(timezone.utc),
                 )
                 accumulated_detections.append(detection_record)
+                total_detections_indexed += 1
 
             # Incremental persistence in batches
             if len(accumulated_frames) >= batch_size:
@@ -180,6 +187,7 @@ def process_video_pipeline(video_id: str) -> None:
                 # Progress percentage calculated from timestamp
                 progress = int(25 + (timestamp / total_duration) * 70)
                 video.progress_percent = min(95, progress)
+                video.updated_at = datetime.now(timezone.utc)
                 db.commit()
 
         # Flush any remaining frames/detections
@@ -193,8 +201,13 @@ def process_video_pipeline(video_id: str) -> None:
         video.progress_percent = 100
         video.current_step = "Indexed"
         video.error_message = None
+        video.updated_at = datetime.now(timezone.utc)
         db.commit()
-        logger.info(f"Successfully processed video {video_id} ({metadata.duration_seconds}s)")
+        logger.info(
+            f"Successfully processed video {video_id} ({metadata.duration_seconds}s): "
+            f"indexed {total_frames_indexed} frames, {total_detections_indexed} detections "
+            f"(confidence threshold={settings.DETECTION_CONFIDENCE_THRESHOLD})"
+        )
 
     except Exception as e:
         logger.exception(f"Processing failed for video {video_id}: {e}")
@@ -203,6 +216,7 @@ def process_video_pipeline(video_id: str) -> None:
         video.progress_percent = 0
         video.current_step = "Failed"
         video.error_message = str(e)
+        video.updated_at = datetime.now(timezone.utc)
         db.commit()
 
     finally:

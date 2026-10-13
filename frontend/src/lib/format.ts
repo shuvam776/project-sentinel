@@ -39,31 +39,48 @@ export function formatFileSize(bytes: number | null | undefined): string {
   return `${gb.toFixed(2)} GB`;
 }
 
+export function parseServerDate(dateStr: string | null | undefined): Date | null {
+  if (!dateStr) return null;
+  let normalized = dateStr.trim();
+  // If the server string lacks timezone info, ensure UTC Z so client parses accurately
+  if (!normalized.includes("Z") && !/[+-]\d{2}(:\d{2})?$/.test(normalized)) {
+    normalized = normalized.includes("T") ? `${normalized}Z` : `${normalized.replace(" ", "T")}Z`;
+  }
+  const d = new Date(normalized);
+  return isNaN(d.getTime()) ? null : d;
+}
+
 export function formatDate(dateStr: string | null | undefined): string {
   if (!dateStr) return "—";
-  const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return "—";
+  const d = parseServerDate(dateStr);
+  if (!d) return "—";
 
   const now = new Date();
   const diffMs = now.getTime() - d.getTime();
-  const diffHours = diffMs / (1000 * 60 * 60);
+  const diffSecs = Math.floor(diffMs / 1000);
+  const diffMins = Math.floor(diffSecs / 60);
+  const diffHours = Math.floor(diffMins / 60);
 
-  if (diffHours >= 0 && diffHours < 1) {
-    const mins = Math.max(1, Math.floor(diffMs / (1000 * 60)));
-    return `${mins} m ago`;
+  if (diffSecs < 60 && diffSecs >= -10) {
+    return "Just now";
   }
-  if (diffHours >= 1 && diffHours < 24) {
-    return `${Math.floor(diffHours)} h ago`;
+  if (diffMins < 60 && diffMins >= 1) {
+    return `${diffMins}m ago`;
+  }
+  if (diffHours < 24 && diffHours >= 1) {
+    return `${diffHours}h ago`;
   }
   if (diffHours >= 24 && diffHours < 48) {
     return "Yesterday";
   }
   if (diffHours >= 48 && diffHours < 168) {
-    return `${Math.floor(diffHours / 24)} d ago`;
+    return `${Math.floor(diffHours / 24)}d ago`;
   }
 
   const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+  const hours = d.getHours().toString().padStart(2, "0");
+  const mins = d.getMinutes().toString().padStart(2, "0");
+  return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}, ${hours}:${mins}`;
 }
 
 export function formatScore(score: number | null | undefined): string {

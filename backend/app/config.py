@@ -31,8 +31,8 @@ class Settings(BaseSettings):
     DEVICE_OVERRIDE: str | None = None  # Force "cuda" or "cpu" if set
     CLIP_MODEL_NAME: str = "openai/clip-vit-base-patch32"
     DETECTOR_MODEL_NAME: str = "fasterrcnn_resnet50_fpn_v2"
-    DETECTION_CONFIDENCE_THRESHOLD: float = 0.50
-    SIMILARITY_THRESHOLD: float = 0.20  # Minimum cosine similarity for semantic candidate
+    DETECTION_CONFIDENCE_THRESHOLD: float = 0.25  # High-recall detection (captures cars, vehicles, persons reliably)
+    SIMILARITY_THRESHOLD: float = 0.15  # Minimum cosine similarity for semantic candidate
 
     # Temporal Grouping
     TEMPORAL_GAP_SECONDS: float = 3.0
