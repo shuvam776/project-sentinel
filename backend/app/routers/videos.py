@@ -83,6 +83,13 @@ async def upload_video(
     db: Session = Depends(get_db),
 ):
     """Uploads an MP4/compatible video file and enqueues background processing."""
+    user_id = get_current_user_id(request)
+    if not user_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required. Please sign in to upload videos.",
+        )
+
     filename = file.filename or "video.mp4"
     ext = Path(filename).suffix.lower()
 
@@ -124,7 +131,7 @@ async def upload_video(
 
     video = Video(
         id=video_id,
-        user_id=get_current_user_id(request),
+        user_id=user_id,
         original_filename=filename,
         storage_path=str(dest_path),
         file_size_bytes=bytes_written,
@@ -153,12 +160,20 @@ def list_videos(
     limit: int = Query(50, ge=1, le=100),
     db: Session = Depends(get_db),
 ):
-    """Lists uploaded videos sorted by creation date."""
+    """Lists uploaded videos sorted by creation date for the authenticated user."""
     user_id = get_current_user_id(request)
-    base_query = db.query(Video)
-    if user_id:
-        base_query = base_query.filter(or_(Video.user_id == user_id, Video.user_id.is_(None)))
+    if not user_id:
+        # Strictly enforce privacy: unauthenticated callers receive zero videos
+        return VideoListResponse(videos=[], total=0)
 
+    # Claim any legacy unassigned videos for this authenticated user so they stay private
+    unassigned = db.query(Video).filter(Video.user_id.is_(None)).all()
+    if unassigned:
+        for uv in unassigned:
+            uv.user_id = user_id
+        db.commit()
+
+    base_query = db.query(Video).filter(Video.user_id == user_id)
     total = base_query.count()
     videos = base_query.order_by(Video.created_at.desc()).offset(skip).limit(limit).all()
     return VideoListResponse(
@@ -174,9 +189,22 @@ def get_video(
     db: Session = Depends(get_db),
 ):
     """Retrieves metadata, processing status, and URLs for a specific video."""
+    user_id = get_current_user_id(request)
+    if not user_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required to view video details.",
+        )
+
     video = db.query(Video).filter(Video.id == video_id).first()
     if not video:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Video not found")
+
+    if video.user_id and video.user_id != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied. This video is private to another account.",
+        )
     return _to_video_response(video, request)
 
 
@@ -189,9 +217,19 @@ def update_video(
     db: Session = Depends(get_db),
 ):
     """Updates video title / original_filename."""
+    user_id = get_current_user_id(request)
+    if not user_id:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required")
+
     video = db.query(Video).filter(Video.id == video_id).first()
     if not video:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Video not found")
+
+    if video.user_id and video.user_id != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied. This video is private to another account.",
+        )
 
     clean_name = update_data.original_filename.strip()
     if not clean_name:
@@ -201,6 +239,7 @@ def update_video(
     db.commit()
     db.refresh(video)
     return _to_video_response(video, request)
+
 
 
 @router.get("/{video_id}/status", response_model=VideoStatusResponse)
@@ -438,12 +477,20 @@ def download_annotated_video(
 @router.delete("/{video_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_video(
     video_id: str,
+    request: Request,
     db: Session = Depends(get_db),
 ):
     """Deletes video, all extracted frames, detections, thumbnails, and clips."""
+    user_id = get_current_user_id(request)
+    if not user_id:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required")
+
     video = db.query(Video).filter(Video.id == video_id).first()
     if not video:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Video not found")
+
+    if video.user_id and video.user_id != user_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied. This video belongs to another account.")
 
     # 1. Remove Cloudinary resources if uploaded
     if video.cloudinary_public_id:
@@ -491,13 +538,21 @@ def delete_video(
 @router.post("/{video_id}/reprocess", response_model=VideoStatusResponse)
 def reprocess_video(
     video_id: str,
+    request: Request,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
     """Re-enqueues processing for an existing video (idempotent)."""
+    user_id = get_current_user_id(request)
+    if not user_id:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required")
+
     video = db.query(Video).filter(Video.id == video_id).first()
     if not video:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Video not found")
+
+    if video.user_id and video.user_id != user_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied. This video is private to another account.")
 
     video.status = "queued"
     video.progress_percent = 0
@@ -522,9 +577,17 @@ def get_video_events(
     db: Session = Depends(get_db),
 ):
     """Retrieves all object detections and temporally grouped event segments for a video."""
+    user_id = get_current_user_id(request)
+    if not user_id:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required")
+
     video = db.query(Video).filter(Video.id == video_id).first()
     if not video:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Video not found")
+
+    if video.user_id and video.user_id != user_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied. This video is private to another account.")
+
 
     detections = db.query(Detection).filter(Detection.video_id == video_id).order_by(Detection.timestamp.asc()).all()
 

@@ -49,10 +49,12 @@ def init_firebase():
 
 def get_current_user_id(request: Request) -> Optional[str]:
     """
-    Extracts user ID from request headers.
+    Extracts user ID from request headers, cookies, or query parameters.
     Priority:
     1. Verified Firebase ID token in Authorization: Bearer <token>
     2. Trusted X-User-ID header passed by client session
+    3. Query parameter token / uid / user_id
+    4. Cookies (for HTML video/image element requests)
     """
     auth_header = request.headers.get("Authorization")
     if auth_header and auth_header.startswith("Bearer "):
@@ -69,4 +71,25 @@ def get_current_user_id(request: Request) -> Optional[str]:
     if user_header:
         return user_header.strip()
 
+    # Query param token verification
+    token_param = request.query_params.get("token")
+    if token_param and init_firebase():
+        try:
+            decoded = auth.verify_id_token(token_param)
+            return decoded.get("uid")
+        except Exception as e:
+            logger.debug("Firebase token query param verification failed: %s", e)
+
+    # Direct query param user ID fallback
+    for q_key in ("user_id", "uid"):
+        q_val = request.query_params.get(q_key)
+        if q_val:
+            return q_val.strip()
+
+    # Cookie fallback
+    cookie_user = request.cookies.get("sentinel_user_id")
+    if cookie_user:
+        return cookie_user.strip()
+
     return None
+

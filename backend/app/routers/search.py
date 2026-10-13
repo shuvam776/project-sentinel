@@ -14,6 +14,7 @@ from app.core.embedder import VisionLanguageEmbedder
 from app.core.vector_store import deserialize_embedding, compute_cosine_similarity
 from app.core.temporal_grouper import TemporalGrouper, FrameMatch
 from app.core.detector import COCO_CLASSES_91
+from app.core.auth import get_current_user_id
 from app.worker import get_embedder
 
 router = APIRouter(prefix="/search", tags=["Search & Intelligence"])
@@ -31,11 +32,23 @@ def search_video(
     Ranks matching frames using cosine similarity with class-frequency density weighting,
     and clusters them into temporal segments. Supports searching single video or entire library.
     """
+    user_id = get_current_user_id(req)
+    if not user_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required to search video footage.",
+        )
+
     # 1. Determine target video scope
     if request_data.video_id and request_data.video_id.strip() and request_data.video_id.lower() != "all":
         video = db.query(Video).filter(Video.id == request_data.video_id.strip()).first()
         if not video:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Video not found")
+        if video.user_id and video.user_id != user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied. This video is private to another account.",
+            )
         if video.status != "completed":
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -43,7 +56,7 @@ def search_video(
             )
         target_videos = [video]
     else:
-        target_videos = db.query(Video).filter(Video.status == "completed").all()
+        target_videos = db.query(Video).filter(Video.status == "completed", Video.user_id == user_id).all()
 
     if not target_videos:
         return SearchResponse(
@@ -223,12 +236,25 @@ def get_frame_image(
 @router.get("/detections/{video_id}", response_model=list[DetectionResponse])
 def get_video_detections(
     video_id: str,
+    request: Request,
     class_name: str | None = Query(None, description="Filter by class name"),
     min_confidence: float = Query(0.0, ge=0.0, le=1.0),
     db: Session = Depends(get_db),
 ):
     """Retrieves all detections for a video with optional class and confidence filters."""
+    video = db.query(Video).filter(Video.id == video_id).first()
+    if not video:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Video not found")
+
+    user_id = get_current_user_id(request)
+    if video.user_id and (not user_id or video.user_id != user_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied. This video is private to another account.",
+        )
+
     query = db.query(Detection).filter(Detection.video_id == video_id)
+
     if min_confidence > 0.0:
         query = query.filter(Detection.confidence >= min_confidence)
     if class_name:

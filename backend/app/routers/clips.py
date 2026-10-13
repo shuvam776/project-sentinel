@@ -6,6 +6,7 @@ from app.config import settings
 from app.database import get_db
 from app.models.video import Video
 from app.core.video_processor import VideoProcessor, VideoProcessorError
+from app.core.auth import get_current_user_id
 
 router = APIRouter(prefix="/clips", tags=["Clips"])
 
@@ -28,6 +29,13 @@ def get_video_clip(
     video = db.query(Video).filter(Video.id == video_id).first()
     if not video:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Video not found")
+
+    user_id = get_current_user_id(request)
+    if video.user_id and (not user_id or video.user_id != user_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied. This video is private to another account.",
+        )
 
     video_path = Path(video.storage_path)
     if not video_path.exists():
